@@ -28,7 +28,7 @@
 #include <shellapi.h>
 #include <shlobj.h> // For SHGetFolderPath
 
-#include "..\..\images\resource.h"
+#include "resource.h"
 
 HINSTANCE hInst;  				// Handle of the main instance
 extern HWND hMainWindow;
@@ -86,7 +86,7 @@ extern int * languageTable;
 HBITMAP hLogo = NULL;
 extern unsigned char * gameLogo;
 
-BOOL CALLBACK setupDlgProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK setupDlgProc (HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
     case WM_INITDIALOG:
@@ -196,11 +196,12 @@ void changeToUserDir () {
 	_wchdir(szAppData);
 }
 
-uint32_t launch(char * f) {
+bool launch(char * f) {
     WCHAR * w_f = ConvertToUTF16(f);
-    uint32_t r = (uint32_t) ShellExecute (hMainWindow, TEXT("open"), w_f, NULL, TEXT("C:\\"), SW_SHOWNORMAL);
+    // ShellExecute returns a value greater than 32 on success.
+    INT_PTR r = (INT_PTR) ShellExecute (hMainWindow, TEXT("open"), w_f, NULL, TEXT("C:\\"), SW_SHOWNORMAL);
     delete w_f;
-	return r;
+	return r > 32;
 }
 
 bool defaultUserFullScreen() {

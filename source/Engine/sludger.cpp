@@ -1,22 +1,12 @@
-#if defined __unix__ && !(defined __APPLE__)
 #include <png.h>
-#else
-#include <libpng/png.h>
-#endif
 
 #include "allfiles.h"
-#include <SDL/SDL.h>
+#include <SDL3/SDL.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <iconv.h>
 
-#if !defined(HAVE_GLES2)
-#include <GL/glew.h>
-#else
-#include <GLES2/gl2.h>
-#include "eglport/eglport.h"
-#endif
+#include "sludge_gl.h"
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -51,6 +41,10 @@
 #include "language.h"
 #include "specialsettings.h"
 #include "graphics.h"
+#include "pointer.h"
+#include "keys.h"
+#include "controllermap.h"
+#include "controllersettings.h"
 
 #include "debug.h"
 
@@ -83,6 +77,7 @@ int gameVersion;
 int specialSettings;
 FILETIME fileTime;
 extern int desiredfps;
+extern char * gamePath;
 bool captureAllKeys = false;
 
 unsigned char brightnessLevel = 255;
@@ -90,7 +85,6 @@ unsigned char brightnessLevel = 255;
 eventHandlers mainHandlers;
 eventHandlers * currentEvents = & mainHandlers;
 
-extern HWND hMainWindow;
 extern screenRegion * overRegion;
 extern speechStruct * speech;
 extern statusStuff * nowStatus;
@@ -497,13 +491,16 @@ bool initSludge (char * filename) {
 	
 	// Get user settings
 	readIniFile (filename);
+	char * settingsFolder = getcwd (NULL, 0);
+	loadControllerMapping (gamePath, settingsFolder ? settingsFolder : ".");
+	free (settingsFolder);
 
-	// There's no startup window on Linux and respecting this 
-	// option from the ini file would disable commandline options.
-#if defined __unix__ && !(defined __APPLE__)
+	// On Linux and macOS, we use the command line options in showSetupWindow
+	// instead of showing a window, so we ignore the noStartWindow option.
+#if defined(__unix__) || defined(__APPLE__)
 		if (! showSetupWindow()) return 0;
 		saveIniFile (filename);
-#else
+#elif defined(_WIN32)
 	if (! gameSettings.noStartWindow) {
 		if (! showSetupWindow()) return 0;
 		saveIniFile (filename);
@@ -549,17 +546,22 @@ bool checkColourChange (bool reset) {
 	}
 	return false;
 }
-void sludgeDisplay () {
 #if defined(HAVE_GLES2)
 #ifndef GL_DEPTH24_STENCIL8
 #define GL_DEPTH24_STENCIL8 0x88F0
 #endif
+// With OpenGL ES, we draw into this frame buffer object, and copy it to the
+// window in showFrame.
+static GLuint fbo = 0;
+static GLuint fbo_tex = 0;
+static GLuint fbo_rbo = 0;
+static float fbo_tex_w, fbo_tex_h;
+static GLuint fbo_shad, fbo_vert, fbo_frag;
+#endif
+
+void sludgeDisplay () {
+#if defined(HAVE_GLES2)
 	// create an FBO
-	static GLuint fbo = 0;
-	static GLuint fbo_tex = 0;
-	static GLuint fbo_rbo = 0;
-	static float fbo_tex_w, fbo_tex_h;
-	static GLuint fbo_shad, fbo_vert, fbo_frag;
 	if(fbo==0) {
 		// create FBO
 		int width = 1;
@@ -653,13 +655,23 @@ void sludgeDisplay () {
 	glDisable(GL_DEPTH_TEST);
 	viewSpeech ();					// ...and anything being said
 	drawStatusBar ();
+	drawControllerSettingsHint ();
+	if (brightnessLevel == 255) {
+		saveFrameWithoutCursor ();
+	} else {
+		forgetFrameWithoutCursor ();
+	}
 	displayCursor ();
 
 	if (brightnessLevel < 255) fixBrightness ();	// This is for transitionLevel special effects
 
+	showFrame ();
+}
+
+void showFrame () {
 	glFlush();
 #if !defined(HAVE_GLES2)
-        SDL_GL_SwapBuffers();
+	swapGraphicsBuffers();
 #else
      if(fbo)
      {
@@ -687,7 +699,7 @@ void sludgeDisplay () {
         glUseProgram(old_prog);
         glViewport (viewportOffsetX, viewportOffsetY, viewportWidth, viewportHeight);
      }
-	EGL_SwapBuffers();
+	swapGraphicsBuffers();
      if(fbo)
      {
      	// Rebind FBO now
@@ -1342,7 +1354,7 @@ bool handleInput () {
 	static int l = 0;
 	static Uint32 theTime;
 
-	theTime = SDL_GetTicks() / 1000;
+	theTime = (Uint32) (SDL_GetTicks() / 1000);
 	if (lastSeconds != theTime) {
 		lastSeconds = theTime;
 		lastFramesPerSecond = thisFramesPerSecond;
@@ -1358,7 +1370,7 @@ bool handleInput () {
 		} else {
 			l = 1;
 
-			setVariable (* launchResult, SVT_INT, launch(launchMe) > 31);
+			setVariable (* launchResult, SVT_INT, launch(launchMe));
 			launchMe = NULL;
 			launchResult = NULL;
 		}
@@ -1402,63 +1414,15 @@ bool handleInput () {
 	}
 	if (input.keyPressed && currentEvents -> spaceFunction) {
 		char * tempString = NULL;
-		switch (input.keyPressed) {
-			case 127:	
-				tempString = copyString ("BACKSPACE");	break;
-			case 9:		tempString = copyString ("TAB");		break;
-			case 13:	tempString = copyString ("ENTER");		break;
-			case 27:	tempString = copyString ("ESCAPE");		break;
-			/*
-			case 1112:	tempString = copyString ("ALT+F1");		break;
-			case 1113:	tempString = copyString ("ALT+F2");		break;
-			case 1114:	tempString = copyString ("ALT+F3");		break;
-			case 1115:	tempString = copyString ("ALT+F4");		break;
-			case 1116:	tempString = copyString ("ALT+F5");		break;
-			case 1117:	tempString = copyString ("ALT+F6");		break;
-			case 1118:	tempString = copyString ("ALT+F7");		break;
-			case 1119:	tempString = copyString ("ALT+F8");		break;
-			case 1120:	tempString = copyString ("ALT+F9");		break;
-			case 1121:	tempString = copyString ("ALT+F10");	break;
-			case 1122:	tempString = copyString ("ALT+F11");	break;
-			case 1123:	tempString = copyString ("ALT+F12");	break;
-
-			case 2019:	tempString = copyString ("PAUSE");		break;
-			*/
-			case 63276:	tempString = copyString ("PAGE UP");	break;
-			case 63277:	tempString = copyString ("PAGE DOWN");	break;
-			case 63275:	tempString = copyString ("END");		break;
-			case 63273:	tempString = copyString ("HOME");		break;
-			case 63234:	tempString = copyString ("LEFT");		break;
-			case 63232:	tempString = copyString ("UP");			break;
-			case 63235:	tempString = copyString ("RIGHT");		break;
-			case 63233:	tempString = copyString ("DOWN");		break;
-				/*
-			case 2045:	tempString = copyString ("INSERT");		break;
-			case 2046:	tempString = copyString ("DELETE");		break;
-				*/
-			case 63236:	tempString = copyString ("F1");			break;
-			case 63237:	tempString = copyString ("F2");			break;
-			case 63238:	tempString = copyString ("F3");			break;
-			case 63239:	tempString = copyString ("F4");			break;
-			case 63240:	tempString = copyString ("F5");			break;
-			case 63241:	tempString = copyString ("F6");			break;
-			case 63242:	tempString = copyString ("F7");			break;
-			case 63243:	tempString = copyString ("F8");			break;
-			case 63244:	tempString = copyString ("F9");			break;
-			case 63245:	tempString = copyString ("F10");		break;
-			case 63246:	tempString = copyString ("F11");		break;
-			case 63247:	tempString = copyString ("F12");		break;
-
-			default:
-			if (input.keyPressed >= 256) {
-				//if (captureAllKeys) {
-					tempString = copyString ("ABCDEF");
-					sprintf (tempString, "%i", input.keyPressed);
-				//}
-			} else {
-				tempString = copyString (" ");
-				tempString[0] = input.keyPressed;
-			}
+		const char * keyName = nameOfSpecialKey (input.keyPressed);
+		if (keyName) {
+			tempString = copyString (keyName);
+		} else if (input.keyPressed >= 256) {
+			tempString = copyString ("ABCDEF");
+			sprintf (tempString, "%i", input.keyPressed);
+		} else {
+			tempString = copyString (" ");
+			tempString[0] = input.keyPressed;
 		}
 
 		if (tempString) {

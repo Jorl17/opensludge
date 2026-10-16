@@ -1,6 +1,6 @@
 #include "debug.h"
 #include "allfiles.h"
-#include <SDL/SDL.h>
+#include <SDL3/SDL.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +55,6 @@ extern eventHandlers * currentEvents;
 extern variableStack * noStack;
 extern statusStuff * nowStatus;
 extern screenRegion * overRegion;
-extern HWND hMainWindow;
 extern unsigned int sceneWidth, sceneHeight;
 extern int numBIFNames, numUserFunc;
 extern char builtInFunctionNames[][25];
@@ -547,7 +546,7 @@ builtIn(substring)
 	newString[endoffset - startoffset] = 0;
 	
 	makeTextVar (fun -> reg, newString);
-	delete newString;
+	delete [] newString;
 	return BR_CONTINUE;
 }
 
@@ -1042,7 +1041,8 @@ builtIn(quitGame)
 {
 	UNUSEDALL
 	reallyWantToQuit = true;
-	quit_event.type=SDL_QUIT;
+	SDL_zero(quit_event);
+	quit_event.type=SDL_EVENT_QUIT;
 	SDL_PushEvent(&quit_event);
 	return BR_CONTINUE;
 }

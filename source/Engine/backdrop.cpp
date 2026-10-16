@@ -1,17 +1,9 @@
-#if defined __unix__ && !(defined __APPLE__)
 #include <png.h>
-#else
-#include <libpng/png.h>
-#endif
 
 #include <stdlib.h>
 #include <stdint.h>
 
-#if !defined(HAVE_GLES2)
-#include <GL/glew.h>
-#else
-#include <GLES2/gl2.h>
-#endif
+#include "sludge_gl.h"
 
 #include "allfiles.h"
 
@@ -176,7 +168,7 @@ bool restoreSnapshot (FILE * fp) {
 	glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	texImage2D (GL_TEXTURE_2D, 0, GL_RGBA, picWidth, picHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, snapshotTexture, snapshotTextureName);
 
-	delete snapshotTexture;
+	delete [] snapshotTexture;
 	snapshotTexture = NULL;
 
 	return true;

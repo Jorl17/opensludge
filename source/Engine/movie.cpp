@@ -7,7 +7,7 @@
  *
  */
 
-#include <SDL/SDL.h>
+#include <SDL3/SDL.h>
 #include <math.h>
 
 #include "specialsettings.h"
@@ -33,7 +33,6 @@
 #include "ogg/ogg.h"
 #include "libvorbis/vorbis_os.h"
 
-#include "AL/alure.h"
 
 
 extern int specialSettings;
@@ -44,11 +43,6 @@ extern int weAreDoneSoQuit;
 
 // Sludger.cpp
 bool handleInput ();
-
-// sound_openal.cpp
-void playMovieStream (int a);
-int initMovieSound(int f, ALenum format, int audioChannels, ALuint samplerate,
-				   ALuint (*callback)(void *userdata, ALubyte *data, ALuint bytes));
 
 
 movieStates movieIsPlaying = nothing;
@@ -67,8 +61,8 @@ typedef struct audioBuffers {
 typedef struct audioQueue {
 	audioBuffers *first, *last;
 	int size;
-	SDL_mutex *mutex;
-	SDL_cond *cond;
+	SDL_Mutex *mutex;
+	SDL_Condition *cond;
 } audioQueue;
 
 audioQueue audioQ;
@@ -97,8 +91,8 @@ typedef struct videoBuffers {
 typedef struct videoQueue {
 	videoBuffers *first, *last;
 	int size;
-	SDL_mutex *mutex;
-	SDL_cond *cond;
+	SDL_Mutex *mutex;
+	SDL_Condition *cond;
 } videoQueue;
 
 videoQueue videoQ;
@@ -107,7 +101,7 @@ videoQueue videoQ;
 void audio_queue_init(audioQueue *q) {
 	memset(q, 0, sizeof(audioQueue));
 	q->mutex = SDL_CreateMutex();
-	q->cond = SDL_CreateCond();
+	q->cond = SDL_CreateCondition();
 }
 int audio_queue_put(audioQueue *q, char *buffer, unsigned int size, long long time_ms) {
 
@@ -127,7 +121,7 @@ int audio_queue_put(audioQueue *q, char *buffer, unsigned int size, long long ti
 		q->last->next = audioBuf;
 	q->last = audioBuf;
 	q->size ++;
-	SDL_CondSignal(q->cond);
+	SDL_SignalCondition(q->cond);
 
 	SDL_UnlockMutex(q->mutex);
 	return 0;
@@ -142,7 +136,7 @@ inline static int audio_queue_get(audioQueue *q, char **buffer)
 	audioBuf = q->first;
 	if (audioBuf) {
 		// Synch video timer to audio
-		Uint32 tick = SDL_GetTicks()+100;
+		Uint32 tick = (Uint32) SDL_GetTicks()+100;
 		if (abs((long int)((tick - movieStartTick)-(audioBuf->time_ms))) > 300) {
 			movieStartTick = tick - audioBuf->time_ms;
 		}
@@ -164,7 +158,7 @@ inline static int audio_queue_get(audioQueue *q, char **buffer)
 void video_queue_init(videoQueue *q) {
 	memset(q, 0, sizeof(videoQueue));
 	q->mutex = SDL_CreateMutex();
-	q->cond = SDL_CreateCond();
+	q->cond = SDL_CreateCondition();
 }
 int video_queue_put(videoQueue *q, GLubyte * ytex, 
 					GLubyte * utex, 
@@ -191,7 +185,7 @@ int video_queue_put(videoQueue *q, GLubyte * ytex,
 		q->last->next = videoBuf;
 	q->last = videoBuf;
 	q->size ++;
-	SDL_CondSignal(q->cond);
+	SDL_SignalCondition(q->cond);
 	
 	SDL_UnlockMutex(q->mutex);
 	return 0;
@@ -291,12 +285,12 @@ long long audioChannels;
 bool fakeAudio = false;
 
 // send audio to audio device...
-ALuint feedAudio (void *userdata, ALubyte *data, ALuint length) {
+unsigned int feedAudio (void *userdata, unsigned char *data, unsigned int length) {
 	static char * buffer = NULL;
 	static unsigned int bufOffset = 0;
 	static unsigned int bufSize = 0;
 
-	ALuint got = 0;
+	unsigned int got = 0;
 	int bufLen;
 
 	if (! buffer) {
@@ -311,7 +305,7 @@ ALuint feedAudio (void *userdata, ALubyte *data, ALuint length) {
 				fprintf (stderr, "Faking audio...\n");
 				fakeAudio = true;
 			}
-//				SDL_CondSignal(audioQ.cond);
+//				SDL_SignalCondition(audioQ.cond);
 			return got;
 		}
 	}
@@ -330,8 +324,8 @@ ALuint feedAudio (void *userdata, ALubyte *data, ALuint length) {
 	got += bufLen;
 
 	if (bufSize <= bufOffset) {
-		buffer = NULL;
 		delete [] buffer;
+		buffer = NULL;
 	}
 //	fprintf (stderr, "Sending %d bytes of audio.\n", got);
 	
@@ -497,8 +491,7 @@ int playMovie (int fileNumber)
 			if( r )
 				fprintf(stderr,"vorbis_block_init failed, error: %d", r);
 
-			ALenum audioFormat = alureGetSampleFormat(audioChannels, 16, 0);
-			movieAudioIndex = initMovieSound(fileNumber, audioFormat, audioChannels, (ALuint) audioSampleRate, feedAudio);
+			movieAudioIndex = initMovieSound(fileNumber, (int) audioChannels, (int) audioSampleRate, feedAudio);
 			fprintf (stderr, "Movie sound inited.\n");
 			audio_queue_init(&audioQ);
 			audioNsPerByte = (1000000000 / audioSampleRate) / (audioChannels * 2);
@@ -604,7 +597,7 @@ int playMovie (int fileNumber)
 
 	int frameCounter = 0;
 
-	movieStartTick = SDL_GetTicks();
+	movieStartTick = (Uint32) SDL_GetTicks();
 	#ifdef HAVE_GLES2
 	GLuint old_fbo;
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, (GLint*)&old_fbo);
@@ -827,7 +820,7 @@ movieHasEnded:	movieIsEnding = 1;
 			videoBuffers *vB;
 			// Do we have decoded video waiting?
 			if (vB = videoQ.first) {
-				Uint32 tick = SDL_GetTicks() - movieStartTick;
+				Uint32 tick = (Uint32) SDL_GetTicks() - movieStartTick;
 				
 				// Is it time to display the frame yet?
 				if ((tick+1) < vB->time_ms) {
@@ -931,11 +924,7 @@ movieHasEnded:	movieIsEnding = 1;
 				Wait_Frame();
 			}
 			glFlush();
-#if !defined(HAVE_GLES2)
-        		SDL_GL_SwapBuffers();
-#else
-			EGL_SwapBuffers();
-#endif
+			swapGraphicsBuffers();
 
 		}
 		videoUpdated = false;
@@ -995,18 +984,12 @@ int stopMovie ()
 int pauseMovie()
 {	
 	if (movieIsPlaying == playing) {
-		ALuint source = getSoundSource(movieAudioIndex);
-		if (source) {
-			alurePauseSource(source);
-		}
+		pauseMovieSound(movieAudioIndex, true);
 		movieIsPlaying = paused;
 		fprintf (stderr, "** Pausing **\n");
 	} else if (movieIsPlaying == paused) {
-		ALuint source = getSoundSource(movieAudioIndex);
-		if (source) {
-			alureResumeSource(source);
-		}
-		fprintf (stderr, "** Restarted movie ** sound: %d source: %d\n", movieSoundPlaying, source);
+		pauseMovieSound(movieAudioIndex, false);
+		fprintf (stderr, "** Restarted movie ** sound: %d\n", movieSoundPlaying);
 		movieIsPlaying = playing;
 	}
 	return movieIsPlaying;

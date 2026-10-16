@@ -1,8 +1,4 @@
-#if !defined(HAVE_GLES2)
-#include <GL/glew.h>
-#else
-#include <GLES2/gl2.h>
-#endif
+#include "sludge_gl.h"
 
 #include "allfiles.h"
 #include "cursors.h"
@@ -25,31 +21,40 @@ void pickAnimCursor (personaAnimation * pp) {
 	mouseCursorCountUp = 0;
 }
 
+bool hasCursorSprite () {
+	return mouseCursorAnim && mouseCursorAnim -> numFrames;
+}
+
+void drawCursor (int x, int y) {
+	if (! hasCursorSprite ()) return;
+
+	int spriteNum = mouseCursorAnim -> frames[mouseCursorFrameNum].frameNum;
+	int flipMe = 0;
+
+	if (spriteNum < 0) {
+		spriteNum = -spriteNum; 
+		flipMe = 1;
+		if (spriteNum >= mouseCursorAnim -> theSprites -> bank.total) spriteNum = 0;
+	} else {
+		if (spriteNum >= mouseCursorAnim -> theSprites -> bank.total) flipMe = 2;
+	}
+	
+	if (flipMe != 2) {
+		(flipMe ? flipFontSprite : fontSprite) (x, y,
+			mouseCursorAnim -> theSprites -> bank.sprites[spriteNum],
+			mouseCursorAnim -> theSprites -> bank.myPalette /* ( spritePalette&) NULL*/);
+	}
+}
+
 void displayCursor () {
-	if (mouseCursorAnim && mouseCursorAnim -> numFrames) {
-		
-		int spriteNum = mouseCursorAnim -> frames[mouseCursorFrameNum].frameNum;
-		int flipMe = 0;
+	if (! hasCursorSprite ()) return;
 
-		if (spriteNum < 0) {
-			spriteNum = -spriteNum; 
-			flipMe = 1;
-			if (spriteNum >= mouseCursorAnim -> theSprites -> bank.total) spriteNum = 0;
-		} else {
-			if (spriteNum >= mouseCursorAnim -> theSprites -> bank.total) flipMe = 2;
-		}
-		
-		if (flipMe != 2) {
-			(flipMe ? flipFontSprite : fontSprite) (input.mouseX, input.mouseY,
-				mouseCursorAnim -> theSprites -> bank.sprites[spriteNum],
-				mouseCursorAnim -> theSprites -> bank.myPalette /* ( spritePalette&) NULL*/);
-		}
+	drawCursor (input.mouseX, input.mouseY);
 
-		if (++ mouseCursorCountUp >= mouseCursorAnim -> frames[mouseCursorFrameNum].howMany) {
-			mouseCursorCountUp = 0;
-			mouseCursorFrameNum ++;
-			mouseCursorFrameNum %= mouseCursorAnim -> numFrames;
-		}
+	if (++ mouseCursorCountUp >= mouseCursorAnim -> frames[mouseCursorFrameNum].howMany) {
+		mouseCursorCountUp = 0;
+		mouseCursorFrameNum ++;
+		mouseCursorFrameNum %= mouseCursorAnim -> numFrames;
 	}
 }
 
