@@ -30,9 +30,11 @@ if test "x$enable_doc" = x; then
   enable_doc="no"
 fi
 
-# Are we building for Windows, with MinGW (32-bit or 64-bit) or Cygwin?
+# Are we building for Windows, with MinGW (32-bit or 64-bit) or Cygwin? In
+# MSYS2, the host from config.guess is x86_64-pc-mingw64, and with MinGW-w64
+# cross compilers, it is x86_64-w64-mingw32.
 case "${host}" in
-        *mingw32*) WIN32="yes" ;;
+        *mingw*) WIN32="yes" ;;
         *cygwin*) WIN32="yes" ;;
         *) WIN32="no" ;;
 esac
