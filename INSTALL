@@ -75,11 +75,9 @@ Building the SLUDGE Development Kit
 Windows and Mac OS X
 ====================
 
-   So far, we build the Dev Kit with GTK 3 only on Linux. The Windows
-installer script, sludge.nsi, is for the earlier Dev Kit with GTK+ 2.16
-and GtkGLExt, and the Xcode project in the "Mac Dev Kit" directory is
-for Mac OS X 10.4, so we cannot build the current Dev Kit with either of
-them.
+   So far, we build the Dev Kit with GTK 3 only on Linux. The Xcode
+project in the "Mac Dev Kit" directory is for Mac OS X 10.4, so we
+cannot build the current Dev Kit with it.
 
 Linux
 =====
