@@ -207,10 +207,27 @@ jobs:
           packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 engine/OpenSLUDGE.exe \
             "$(packaging/version.sh)" x64 dist
 
-      - name: Check that the compiler runs from the zip
+      - name: Start the tools from the zip
         run: |
           unzip -q dist/OpenSLUDGE-DevKit-*.zip -d unpacked
-          "unpacked/OpenSLUDGE Dev Kit/sludge-compiler.exe" --help
+          cd "unpacked/OpenSLUDGE Dev Kit"
+          # We leave the GTK of MSYS2 out of PATH and XDG_DATA_DIRS, so that
+          # the tools can only use the DLLs, schemas and icons in the zip.
+          run() { env -u XDG_DATA_DIRS PATH=/usr/bin "$@"; }
+          run ./sludge-compiler.exe --help
+          # Each editor has to stay alive for 10 seconds, which means that it
+          # started without a fatal error.
+          for app in sludge-floormaker sludge-zbuffermaker sludge-spritebankeditor \
+                     sludge-translationeditor sludge-projectmanager; do
+            set +e
+            run timeout 10 ./$app.exe
+            status=$?
+            set -e
+            if [ $status -ne 124 ]; then
+              echo "$app exited early with status $status"
+              exit 1
+            fi
+          done
 
       - uses: actions/upload-artifact@v4
         with:
