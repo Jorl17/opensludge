@@ -21,10 +21,6 @@
 #include <stdlib.h>
 #include <glib/gstdio.h>
 
-#ifdef __WIN32
-#include <direct.h>
-#endif
-
 #include "SludgeApplication.h"
 #include "Common.h"
 #include "version.h"
@@ -93,9 +89,9 @@ SludgeApplication::SludgeApplication(const char * gladeFileName, const char * ic
 		return;
 	}
 
-	char folderFile[300];
-	sprintf(folderFile, "%s/sludge-devkit/%s", g_get_user_config_dir(), configfile);
-	FILE * fp = fopen (folderFile, "r");
+	gchar * folderFile = getSettingsFilePath (configfile);
+	FILE * fp = g_fopen (folderFile, "r");
+	g_free (folderFile);
 	if (fp) {
 		char readChar = ' ';
 		for (int i = 0; i < 300; i++) {
@@ -121,14 +117,9 @@ SludgeApplication::~SludgeApplication()
 {
 	if (currentFolder[0] != 0)
 	{
-		if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-		_mkdir("sludge-devkit");
-#else
-		g_mkdir("sludge-devkit", 0000777);
-#endif
-		if (g_chdir("sludge-devkit")) return;
-		FILE * fp = fopen (configfile, "w");
+		gchar * folderFile = getSettingsFilePath (configfile);
+		FILE * fp = g_fopen (folderFile, "w");
+		g_free (folderFile);
 
 		if (fp) {
 			fprintf (fp, "%s\n", currentFolder);

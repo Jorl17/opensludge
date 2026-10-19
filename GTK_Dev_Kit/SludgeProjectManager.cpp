@@ -314,15 +314,9 @@ void SludgeProjectManager::listChanged(whichTreeview whichOne)
 }
 
 void SludgeProjectManager::readIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-
-	FILE * fp = fopen("SLUDGE.ini", "rb");
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "rb");
+	g_free(iniFile);
 	
 	programSettings.compilerKillImages = 0;
 	programSettings.compilerWriteStrings = 0;
@@ -428,20 +422,14 @@ void SludgeProjectManager::readIniFile() {
 		
 		fclose(fp);
 	}
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::saveIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-	
-	FILE * fp = fopen("SLUDGE.ini", "wb");
-	
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "wb");
+	g_free(iniFile);
+	if (!fp) return;
+
 	fprintf(fp, "KillImages=%d\x0D\x0A", programSettings.compilerKillImages);
 	fprintf(fp, "WriteStrings=%d\x0D\x0A", programSettings.compilerWriteStrings);
 	fprintf(fp, "Verbose=%d\x0D\x0A", programSettings.compilerVerbose);
@@ -451,7 +439,6 @@ void SludgeProjectManager::saveIniFile() {
 	fprintf(fp, "AudioPlayer=%s\x0D\x0A", audioPlayer);
 	fprintf(fp, "ModPlayer=%s\x0D\x0A", modPlayer);
 	fclose(fp);
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::compile()

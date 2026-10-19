@@ -137,6 +137,18 @@ void flipBackslashes(char **string)
 #endif
 }
 
+// Return the path of a file in sludge-devkit, the folder in the configuration
+// folder of the user where we keep the settings of the Dev Kit, and create
+// that folder if it does not exist yet. Free the path with g_free.
+char * getSettingsFilePath (const char * fileName)
+{
+	gchar * folder = g_build_filename (g_get_user_config_dir (), "sludge-devkit", NULL);
+	g_mkdir_with_parents (folder, 0777);
+	gchar * path = g_build_filename (folder, fileName, NULL);
+	g_free (folder);
+	return path;
+}
+
 void winChangeToProgramDir(const char *programFullPath)
 {
 #ifdef __WIN32
