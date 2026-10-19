@@ -201,3 +201,6 @@ sludge_compiler_LDADD = @GLIB_LIBS@ @LIBPNG_LIBS@
 SUFFIXES = .rc
 .rc.o:
 	$(WINDRES) $< -O coff -o $@
+
+# The .rc files include version.h, so we compile them again when it changes.
+FloorMaker.o ZBufferMaker.o SpriteBankEditor.o TranslationEditor.o ProjectManager.o: ../source/CommonCode/version.h
