@@ -181,13 +181,13 @@ void replaceInvalidCharacters(char *string, int *retval)
 	}
 }
 
+// Start cmd, a program with its options, in the folder path, with args, when
+// it is not NULL, as one more argument. Return TRUE when the program started.
 int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 {
-	char     *quoted_args;
-	char     cmd_line[256];
-	char   **argv;
-	int      argp;
-	int      rc = 0;
+	char   **argv = NULL;
+	int      argc;
+	int      rc;
 
 	if (cmd == NULL)
 		return FALSE;
@@ -198,9 +198,10 @@ int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 	if (path != NULL)
 		g_chdir (path);
 
-	if (args == NULL) {
-		snprintf (cmd_line, sizeof (cmd_line), "%s", cmd);
-	} else {
+	if (!g_shell_parse_argv (cmd, &argc, &argv, NULL))
+		return FALSE;
+
+	if (args != NULL) {
 		#ifdef __WIN32
 		for (int i = 0; args[i] != 0; i++)
 		{
@@ -209,18 +210,9 @@ int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 		}
 		#endif
 
-		quoted_args = g_shell_quote (args);
-
-		snprintf (cmd_line, sizeof (cmd_line), "%s %s", cmd, quoted_args);
-
-		g_free(quoted_args);
-	}
-
-	rc = g_shell_parse_argv (cmd_line, &argp, &argv, NULL);
-	if (!rc)
-	{
-		g_strfreev (argv);
-		return rc;
+		argv = (char **) g_realloc (argv, (argc + 2) * sizeof (char *));
+		argv[argc] = g_strdup (args);
+		argv[argc + 1] = NULL;
 	}
 
 	rc = g_spawn_async (path, argv, NULL,
