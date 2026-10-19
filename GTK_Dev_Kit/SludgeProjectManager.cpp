@@ -813,19 +813,18 @@ void SludgeProjectManager::on_comp_okbutton_clicked(GtkButton *theButton)
 
 void SludgeProjectManager::on_comp_gamebutton_clicked()
 {
-	char cmd[1000];
 	char *file = getFullPath(gameFile);
 
 #ifdef __WIN32
 	// On Windows, the engine is OpenSLUDGE.exe, in the folder of the Dev Kit,
 	// which is our working folder.
-	sprintf(cmd, "\"%s\\OpenSLUDGE.exe\"", workingDir);
+	gchar *cmd = g_strdup_printf("\"%s\\OpenSLUDGE.exe\"", workingDir);
 	if (!sh_cmd(workingDir, cmd, file)) {
 		errorBox("Couldn't find the SLUDGE engine", "To run the game, we start OpenSLUDGE.exe from the folder of the Dev Kit. Make sure it's there.");
 	}
+	g_free(cmd);
 #else
-	sprintf(cmd, "%s", "sludge-engine");
-	sh_cmd(workingDir, cmd, file);
+	sh_cmd(workingDir, "sludge-engine", file);
 #endif
 
 	deleteString(file);
