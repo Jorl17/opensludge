@@ -143,9 +143,9 @@ const char * SludgeProjectManager::getFilterName()
 	return "SLUDGE Project Files (*.slp)";
 }
 
-const char * SludgeProjectManager::getFilterPattern()
+const char * SludgeProjectManager::getFilterExtension()
 {
-	return "*.[sS][lL][pP]";
+	return "slp";
 }
 
 const char * SludgeProjectManager::getUntitledFilename()
@@ -174,15 +174,11 @@ void SludgeProjectManager::postOpen()
 void SludgeProjectManager::postNew()
 {
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 	gboolean success = FALSE;
 
 	dialog = newFileChooser("New SLUDGE Project", GTK_FILE_CHOOSER_ACTION_SAVE);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter(dialog, filter);
+	setFileTypeFilter(dialog);
 
 	gtk_file_chooser_set_current_name(dialog, getUntitledFilename());
 
@@ -314,15 +310,9 @@ void SludgeProjectManager::listChanged(whichTreeview whichOne)
 }
 
 void SludgeProjectManager::readIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-
-	FILE * fp = fopen("SLUDGE.ini", "rb");
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "rb");
+	g_free(iniFile);
 	
 	programSettings.compilerKillImages = 0;
 	programSettings.compilerWriteStrings = 0;
@@ -428,20 +418,14 @@ void SludgeProjectManager::readIniFile() {
 		
 		fclose(fp);
 	}
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::saveIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-	
-	FILE * fp = fopen("SLUDGE.ini", "wb");
-	
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "wb");
+	g_free(iniFile);
+	if (!fp) return;
+
 	fprintf(fp, "KillImages=%d\x0D\x0A", programSettings.compilerKillImages);
 	fprintf(fp, "WriteStrings=%d\x0D\x0A", programSettings.compilerWriteStrings);
 	fprintf(fp, "Verbose=%d\x0D\x0A", programSettings.compilerVerbose);
@@ -451,7 +435,6 @@ void SludgeProjectManager::saveIniFile() {
 	fprintf(fp, "AudioPlayer=%s\x0D\x0A", audioPlayer);
 	fprintf(fp, "ModPlayer=%s\x0D\x0A", modPlayer);
 	fclose(fp);
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::compile()
@@ -724,24 +707,24 @@ void SludgeProjectManager::on_add_file_clicked()
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "SLU/SLD/TRA files");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][uU]");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][dD]");
-	gtk_file_filter_add_pattern(filter, "*.[tT][rR][aA]");
+	addExtensionPattern(filter, "slu");
+	addExtensionPattern(filter, "sld");
+	addExtensionPattern(filter, "tra");
 	gtk_file_chooser_add_filter(dialog, filter);
 
 	slufilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(slufilter, "SLUDGE scripts (*.slu)");
-	gtk_file_filter_add_pattern(slufilter, "*.[sS][lL][uU]");
+	addExtensionPattern(slufilter, "slu");
 	gtk_file_chooser_add_filter(dialog, slufilter);
 
 	sldfilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(sldfilter, "SLUDGE constant definition files (*.sld)");
-	gtk_file_filter_add_pattern(sldfilter, "*.[sS][lL][dD]");
+	addExtensionPattern(sldfilter, "sld");
 	gtk_file_chooser_add_filter(dialog, sldfilter);
 
 	trafilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(trafilter, "SLUDGE translation files (*.tra)");
-	gtk_file_filter_add_pattern(trafilter, "*.[tT][rR][aA]");
+	addExtensionPattern(trafilter, "tra");
 	gtk_file_chooser_add_filter(dialog, trafilter);
 
 	gtk_file_chooser_set_filter(dialog, filter);
@@ -830,30 +813,18 @@ void SludgeProjectManager::on_comp_okbutton_clicked(GtkButton *theButton)
 
 void SludgeProjectManager::on_comp_gamebutton_clicked()
 {
-	char cmd[1000];
 	char *file = getFullPath(gameFile);
 
 #ifdef __WIN32
-	int cmdSuccess;
-	int lastSlash = 0;
-	char engineDir[1000];
-	sprintf(engineDir, "%s", workingDir);
-
-	for (int k = 0; engineDir[k] != 0; k++) {
-		if (engineDir[k] == '\\') {
-			lastSlash = k;
-		}
+	// On Windows, the engine is OpenSLUDGE.exe, in the folder of the Dev Kit,
+	// which is our working folder.
+	gchar *cmd = g_strdup_printf("\"%s\\OpenSLUDGE.exe\"", workingDir);
+	if (!sh_cmd(workingDir, cmd, file)) {
+		errorBox("Couldn't find the SLUDGE engine", "To run the game, we start OpenSLUDGE.exe from the folder of the Dev Kit. Make sure it's there.");
 	}
-	sprintf(engineDir + lastSlash + 1, "Engine");
-	sprintf(cmd, "\"%s\\SLUDGE Engine.exe\"", engineDir);
-	cmdSuccess = sh_cmd(engineDir, cmd, file);
-
-	if (!cmdSuccess) {
-		errorBox("Couldn't find SLUDGE Engine", "The SLUDGE Engine was expected at ..\\Engine\\SLUDGE Engine.exe relative to the Project Manager executable. Make sure it's there to make the Run Game button work.");
-	}
+	g_free(cmd);
 #else
-	sprintf(cmd, "%s", "sludge-engine");
-	sh_cmd(workingDir, cmd, file);
+	sh_cmd(workingDir, "sludge-engine", file);
 #endif
 
 	deleteString(file);

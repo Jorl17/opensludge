@@ -93,9 +93,9 @@ const char * SludgeFloorMaker::getFilterName()
 	return "SLUDGE Floor Files (*.flo)";
 }
 
-const char * SludgeFloorMaker::getFilterPattern()
+const char * SludgeFloorMaker::getFilterExtension()
 {
-	return "*.[fF][lL][oO]";
+	return "flo";
 }
 
 const char * SludgeFloorMaker::getUntitledFilename()

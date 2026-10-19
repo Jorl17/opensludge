@@ -72,14 +72,34 @@ Order, so keep get-out-of-order.sh for those.
 Building the SLUDGE Development Kit
 ***********************************
 
-Windows and Mac OS X
-====================
+Windows
+=======
 
-   So far, we build the Dev Kit with GTK 3 only on Linux. The Windows
-installer script, sludge.nsi, is for the earlier Dev Kit with GTK+ 2.16
-and GtkGLExt, and the Xcode project in the "Mac Dev Kit" directory is
-for Mac OS X 10.4, so we cannot build the current Dev Kit with either of
-them.
+   We build the Dev Kit for 64-bit Windows in MSYS2, in its UCRT64
+environment, with these packages: mingw-w64-ucrt-x86_64-toolchain,
+mingw-w64-ucrt-x86_64-gtk3, mingw-w64-ucrt-x86_64-libepoxy,
+mingw-w64-ucrt-x86_64-libpng, mingw-w64-ucrt-x86_64-librsvg,
+mingw-w64-ucrt-x86_64-adwaita-icon-theme, autoconf, automake, make and
+zip. Then, in the UCRT64 shell:
+
+     ./autogen.sh
+     ./configure --prefix=/
+     make
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 \
+       <OpenSLUDGE.exe> <version> x64 dist
+
+   With make-devkit-zip.sh, we put the tools, the engine and the parts of
+GTK that the tools need into one folder, and zip it. In the workflow, we
+make this zip in the DevKit (Windows) job, with the engine from the
+Windows job, and we publish it with the release.
+
+Mac OS X
+========
+
+   So far, we build the Dev Kit only on Linux and Windows. The Xcode
+project in the "Mac Dev Kit" directory is for Mac OS X 10.4, so we
+cannot build the current Dev Kit with it.
 
 Linux
 =====

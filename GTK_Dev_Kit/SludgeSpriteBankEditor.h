@@ -47,7 +47,7 @@ private:
 	virtual gboolean init(gboolean calledFromConstructor);
 	virtual const char * getWindowTitle();
 	virtual const char * getFilterName();
-	virtual const char * getFilterPattern();
+	virtual const char * getFilterExtension();
 	virtual const char * getUntitledFilename();
 	virtual gboolean saveFile(char *filename);
 	virtual gboolean loadFile(char *filename);

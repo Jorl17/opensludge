@@ -2,8 +2,8 @@ SUBDIRS = support
 
 bin_PROGRAMS = sludge-floormaker sludge-zbuffermaker sludge-spritebankeditor sludge-translationeditor sludge-projectmanager sludge-compiler
 
-check_PROGRAMS = view_test
-TESTS = view_test
+check_PROGRAMS = view_test sh_cmd_test
+TESTS = view_test sh_cmd_test
 
 view_test_SOURCES = \
 	../tests/devkit/view_test.cpp \
@@ -16,6 +16,9 @@ view_test_SOURCES = \
 	../source/CommonCode/tga.cpp ../source/CommonCode/tga.h
 view_test_CPPFLAGS = $(AM_CPPFLAGS) -DVIEW_TEST_FOLDER=\"$(abs_top_srcdir)/tests/devkit\"
 view_test_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
+
+sh_cmd_test_SOURCES = ../tests/devkit/sh_cmd_test.cpp Common.cpp Common.h
+sh_cmd_test_LDADD = @GTK_LIBS@
 
 sludge_floormaker_SOURCES = \
 	FloorMakerMain.cpp SludgeFloorMaker.cpp SludgeFloorMaker.h \
@@ -155,7 +158,6 @@ dist_pkgdata_DATA = \
 	../images/compiler/compiler_16x16x32.png ../images/gameIcon/gameIcon_16x16x32.png
 
 EXTRA_DIST = \
-	make_resources.sh \
 	FloorMaker.rc ZBufferMaker.rc SpriteBankEditor.rc TranslationEditor.rc ProjectManager.rc \
 	../images/flags/flags.ico \
 	../images/floorIcon/floorIcon.ico ../images/zIcon/zIcon.ico \
@@ -171,11 +173,15 @@ AM_CPPFLAGS += \
 AM_LDFLAGS = \
 	-Wl,-subsystem,windows
 
-sludge_floormaker_LDADD = FloorMakerResources.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_zbuffermaker_LDADD = ZBufferMakerResources.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_spritebankeditor_LDADD = SpriteBankEditorResources.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_translationeditor_LDADD = TranslationEditorResources.o @GTK_LIBS@ @LIBPNG_LIBS@
-sludge_projectmanager_LDADD = ProjectManagerResources.o @GTK_LIBS@ @LIBPNG_LIBS@
+# We run the compiler from the command line, so we link it as a console
+# program, without the flags above.
+sludge_compiler_LDFLAGS =
+
+sludge_floormaker_LDADD = FloorMaker.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
+sludge_zbuffermaker_LDADD = ZBufferMaker.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
+sludge_spritebankeditor_LDADD = SpriteBankEditor.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
+sludge_translationeditor_LDADD = TranslationEditor.o @GTK_LIBS@ @LIBPNG_LIBS@
+sludge_projectmanager_LDADD = ProjectManager.o @GTK_LIBS@ @LIBPNG_LIBS@
 else
 AM_CPPFLAGS += \
 	-std=c++0x \
@@ -189,3 +195,12 @@ sludge_projectmanager_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@
 endif
 
 sludge_compiler_LDADD = @GLIB_LIBS@ @LIBPNG_LIBS@
+
+# On Windows, we compile the icon and the version information of each tool
+# from its .rc file, for example FloorMaker.rc into FloorMaker.o.
+SUFFIXES = .rc
+.rc.o:
+	$(WINDRES) $< -O coff -o $@
+
+# The .rc files include version.h, so we compile them again when it changes.
+FloorMaker.o ZBufferMaker.o SpriteBankEditor.o TranslationEditor.o ProjectManager.o: ../source/CommonCode/version.h

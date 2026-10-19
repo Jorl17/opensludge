@@ -30,10 +30,12 @@ bool errorBox (const char * head, const char * msg);
 }
 #endif
 
+void addExtensionPattern (GtkFileFilter * filter, const char * extension);
 void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolean tga);
 char * joinTwoStrings (const char * a, const char * b);
 bool fileExists(char * file);
 void flipBackslashes(char **string);
 void winChangeToProgramDir(const char *programFullPath);
+char * getSettingsFilePath (const char * fileName);
 void replaceInvalidCharacters(char *string, int *retval);
 int sh_cmd (char * path, const char * cmd, char * args);

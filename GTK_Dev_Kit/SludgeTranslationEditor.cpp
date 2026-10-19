@@ -86,9 +86,9 @@ const char * SludgeTranslationEditor::getFilterName()
 	return "SLUDGE Translation Files (*.tra)";
 }
 
-const char * SludgeTranslationEditor::getFilterPattern()
+const char * SludgeTranslationEditor::getFilterExtension()
 {
-	return "*.[tT][rR][aA]";
+	return "tra";
 }
 
 const char * SludgeTranslationEditor::getUntitledFilename()
@@ -449,7 +449,7 @@ void SludgeTranslationEditor::on_load_strings_clicked()
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "SLUDGE Project Files (*.slp)");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][pP]");
+	addExtensionPattern(filter, "slp");
 	gtk_file_chooser_add_filter(dialog, filter);
 
 	gtk_file_chooser_set_filter(dialog, filter);

@@ -39,7 +39,7 @@ private:
 	virtual gboolean init(gboolean calledFromConstructor) = 0;
 	virtual const char * getWindowTitle() = 0;
 	virtual const char * getFilterName() = 0;
-	virtual const char * getFilterPattern() = 0;
+	virtual const char * getFilterExtension() = 0;
 	virtual const char * getUntitledFilename() = 0;
 	virtual gboolean saveFile(char *filename) = 0;
 	virtual gboolean loadFile(char *filename) = 0;
@@ -55,6 +55,7 @@ protected:
 	void setFileChanged();
 	GtkFileChooser * newFileChooser(const char *title, GtkFileChooserAction action);
 	gboolean runFileChooser(GtkFileChooser *chooser);
+	void setFileTypeFilter(GtkFileChooser *chooser);
 
 public:
 	SludgeApplication(const char * gladeFileName, const char * iconName, const char * configFile);

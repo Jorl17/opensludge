@@ -70,6 +70,25 @@ message_dialog(GtkMessageType type, const gchar *title, const gchar *message)
 	return response;
 }
 
+// Add a pattern to the filter for the files with the given extension, such as
+// "png", in upper or lower case. Windows ignores case in file names, and in
+// the Windows file dialog, only * and ? are wildcards, so on Windows we add
+// "*.png". On Linux, macOS and other systems, we add "*.[pP][nN][gG]".
+void addExtensionPattern (GtkFileFilter * filter, const char * extension)
+{
+#ifdef __WIN32
+	gchar * pattern = g_strconcat ("*.", extension, NULL);
+#else
+	GString * built = g_string_new ("*.");
+	for (const char * c = extension; *c; c++) {
+		g_string_append_printf (built, "[%c%c]", g_ascii_tolower (*c), g_ascii_toupper (*c));
+	}
+	gchar * pattern = g_string_free (built, FALSE);
+#endif
+	gtk_file_filter_add_pattern (filter, pattern);
+	g_free (pattern);
+}
+
 void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolean tga)
 {
 	GtkFileFilter *pngtgafilter, *pngfilter, *tgafilter;
@@ -77,22 +96,20 @@ void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolea
 	if (png && tga) {
 		pngtgafilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(pngtgafilter, "PNG/TGA images");
-		gtk_file_filter_add_mime_type(pngtgafilter, "image/png");
-		gtk_file_filter_add_mime_type(pngtgafilter, "image/x-tga");
-		gtk_file_filter_add_pattern(pngtgafilter, "*.[tT][gG][aA]");
+		addExtensionPattern(pngtgafilter, "png");
+		addExtensionPattern(pngtgafilter, "tga");
 		gtk_file_chooser_add_filter(theFileChooser, pngtgafilter);
 	}
 	if (png) {
 		pngfilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(pngfilter, "PNG images");
-		gtk_file_filter_add_mime_type(pngfilter, "image/png");
+		addExtensionPattern(pngfilter, "png");
 		gtk_file_chooser_add_filter(theFileChooser, pngfilter);
 	}
 	if (tga) {
 		tgafilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(tgafilter, "TGA images");
-		gtk_file_filter_add_mime_type(tgafilter, "image/x-tga");
-		gtk_file_filter_add_pattern(tgafilter, "*.[tT][gG][aA]");
+		addExtensionPattern(tgafilter, "tga");
 		gtk_file_chooser_add_filter(theFileChooser, tgafilter);
 	}
 	if (png && tga) {
@@ -137,6 +154,18 @@ void flipBackslashes(char **string)
 #endif
 }
 
+// Return the path of a file in sludge-devkit, the folder in the configuration
+// folder of the user where we keep the settings of the Dev Kit, and create
+// that folder if it does not exist yet. Free the path with g_free.
+char * getSettingsFilePath (const char * fileName)
+{
+	gchar * folder = g_build_filename (g_get_user_config_dir (), "sludge-devkit", NULL);
+	g_mkdir_with_parents (folder, 0777);
+	gchar * path = g_build_filename (folder, fileName, NULL);
+	g_free (folder);
+	return path;
+}
+
 void winChangeToProgramDir(const char *programFullPath)
 {
 #ifdef __WIN32
@@ -169,13 +198,13 @@ void replaceInvalidCharacters(char *string, int *retval)
 	}
 }
 
+// Start cmd, a program with its options, in the folder path, with args, when
+// it is not NULL, as one more argument. Return TRUE when the program started.
 int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 {
-	char     *quoted_args;
-	char     cmd_line[256];
-	char   **argv;
-	int      argp;
-	int      rc = 0;
+	char   **argv = NULL;
+	int      argc;
+	int      rc;
 
 	if (cmd == NULL)
 		return FALSE;
@@ -186,9 +215,10 @@ int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 	if (path != NULL)
 		g_chdir (path);
 
-	if (args == NULL) {
-		snprintf (cmd_line, sizeof (cmd_line), "%s", cmd);
-	} else {
+	if (!g_shell_parse_argv (cmd, &argc, &argv, NULL))
+		return FALSE;
+
+	if (args != NULL) {
 		#ifdef __WIN32
 		for (int i = 0; args[i] != 0; i++)
 		{
@@ -197,18 +227,9 @@ int sh_cmd (gchar * path, const gchar * cmd, gchar * args)
 		}
 		#endif
 
-		quoted_args = g_shell_quote (args);
-
-		snprintf (cmd_line, sizeof (cmd_line), "%s %s", cmd, quoted_args);
-
-		g_free(quoted_args);
-	}
-
-	rc = g_shell_parse_argv (cmd_line, &argp, &argv, NULL);
-	if (!rc)
-	{
-		g_strfreev (argv);
-		return rc;
+		argv = (char **) g_realloc (argv, (argc + 2) * sizeof (char *));
+		argv[argc] = g_strdup (args);
+		argv[argc + 1] = NULL;
 	}
 
 	rc = g_spawn_async (path, argv, NULL,
