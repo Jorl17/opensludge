@@ -159,6 +159,64 @@ jobs:
           path: dist/*.zip
           if-no-files-found: error
 
+  windows-devkit:
+    name: DevKit (Windows)
+    needs: windows
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-gtk3
+            mingw-w64-ucrt-x86_64-libepoxy
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-librsvg
+            mingw-w64-ucrt-x86_64-adwaita-icon-theme
+            autoconf
+            automake
+            make
+            zip
+            unzip
+
+      - name: Build
+        run: |
+          ./autogen.sh
+          ./configure --prefix=/
+          make -j"$(nproc)"
+          make install DESTDIR="$PWD/install"
+
+      # We put the engine from the OpenSLUDGE zip of the Windows job into the
+      # Dev Kit, to run the games with.
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-zips
+          path: engine
+
+      - name: Make the zip
+        run: |
+          unzip -q -j engine/OpenSLUDGE-*-windows-x64.zip OpenSLUDGE/OpenSLUDGE.exe -d engine
+          packaging/windows/make-devkit-zip.sh install /ucrt64 engine/OpenSLUDGE.exe \
+            "$(packaging/version.sh)" x64 dist
+
+      - name: Check that the compiler runs from the zip
+        run: |
+          unzip -q dist/OpenSLUDGE-DevKit-*.zip -d unpacked
+          "unpacked/OpenSLUDGE Dev Kit/sludge-compiler.exe" --help
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-devkit-zip
+          path: dist/*.zip
+          if-no-files-found: error
+
   windows-x86:
     name: Windows (32-bit, from Windows XP)
     runs-on: ubuntu-24.04
@@ -399,7 +457,7 @@ jobs:
   release:
     name: Publish the release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, windows, windows-x86, macos-package]
+    needs: [linux, windows, windows-devkit, windows-x86, macos-package]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -419,6 +477,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: windows-x86-zips
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-devkit-zip
           path: dist
 
       - name: Publish
