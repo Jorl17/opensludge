@@ -32,9 +32,14 @@ int main () {
 
 	gchar * receivedFile = g_build_filename (folder, "received.txt", NULL);
 	gchar * received = NULL;
-	for (int i = 0; started && ! received && i < 100; i ++) {
+	// sh creates the file before it writes into it, so we read it again until
+	// it contains the whole argument, for up to 5 seconds.
+	for (int i = 0; started && i < 100; i ++) {
 		g_usleep (50000);
+		g_free (received);
+		received = NULL;
 		g_file_get_contents (receivedFile, &received, NULL, NULL);
+		if (received && argument == received) break;
 	}
 
 	int failed = 0;
