@@ -170,6 +170,10 @@ AM_CPPFLAGS += \
 AM_LDFLAGS = \
 	-Wl,-subsystem,windows
 
+# We run the compiler from the command line, so we link it as a console
+# program, without the flags above.
+sludge_compiler_LDFLAGS =
+
 sludge_floormaker_LDADD = FloorMaker.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
 sludge_zbuffermaker_LDADD = ZBufferMaker.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
 sludge_spritebankeditor_LDADD = SpriteBankEditor.o @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
