@@ -17,6 +17,7 @@ set -eu
 install=$1 gtk=$2 engine=$3 version=$4 label=$5 output=$6
 here=$(cd "$(dirname "$0")" && pwd)
 stage=$(mktemp -d)
+trap 'rm -rf "$stage"' EXIT
 kit="$stage/OpenSLUDGE Dev Kit"
 loaders=lib/gdk-pixbuf-2.0/2.10.0/loaders
 
@@ -58,6 +59,8 @@ done
 rm "$kit/gdk-pixbuf-query-loaders.exe"
 
 output=$(cd "$output" && pwd)
-(cd "$stage" && zip -q -r -9 "$output/OpenSLUDGE-DevKit-$version-windows-$label.zip" "OpenSLUDGE Dev Kit")
-rm -rf "$stage"
+zip="$output/OpenSLUDGE-DevKit-$version-windows-$label.zip"
+# zip adds to an existing archive, so we remove the one from an earlier run.
+rm -f "$zip"
+(cd "$stage" && zip -q -r -9 "$zip" "OpenSLUDGE Dev Kit")
 ls -la "$output"
