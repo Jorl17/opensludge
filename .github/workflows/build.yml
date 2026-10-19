@@ -191,7 +191,8 @@ jobs:
           ./autogen.sh
           ./configure --prefix=/
           make -j"$(nproc)"
-          make install DESTDIR="$PWD/install"
+          # On Windows, a folder named install would clash with INSTALL.
+          make install DESTDIR="$PWD/devkit-install"
 
       # We put the engine from the OpenSLUDGE zip of the Windows job into the
       # Dev Kit, to run the games with.
@@ -203,7 +204,7 @@ jobs:
       - name: Make the zip
         run: |
           unzip -q -j engine/OpenSLUDGE-*-windows-x64.zip OpenSLUDGE/OpenSLUDGE.exe -d engine
-          packaging/windows/make-devkit-zip.sh install /ucrt64 engine/OpenSLUDGE.exe \
+          packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 engine/OpenSLUDGE.exe \
             "$(packaging/version.sh)" x64 dist
 
       - name: Check that the compiler runs from the zip

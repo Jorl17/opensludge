@@ -85,8 +85,8 @@ zip. Then, in the UCRT64 shell:
      ./autogen.sh
      ./configure --prefix=/
      make
-     make install DESTDIR="$PWD/install"
-     packaging/windows/make-devkit-zip.sh install /ucrt64 \
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 \
        <OpenSLUDGE.exe> <version> x64 dist
 
    With make-devkit-zip.sh, we put the tools, the engine and the parts of
