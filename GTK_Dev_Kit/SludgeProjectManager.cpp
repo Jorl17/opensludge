@@ -821,22 +821,11 @@ void SludgeProjectManager::on_comp_gamebutton_clicked()
 	char *file = getFullPath(gameFile);
 
 #ifdef __WIN32
-	int cmdSuccess;
-	int lastSlash = 0;
-	char engineDir[1000];
-	sprintf(engineDir, "%s", workingDir);
-
-	for (int k = 0; engineDir[k] != 0; k++) {
-		if (engineDir[k] == '\\') {
-			lastSlash = k;
-		}
-	}
-	sprintf(engineDir + lastSlash + 1, "Engine");
-	sprintf(cmd, "\"%s\\SLUDGE Engine.exe\"", engineDir);
-	cmdSuccess = sh_cmd(engineDir, cmd, file);
-
-	if (!cmdSuccess) {
-		errorBox("Couldn't find SLUDGE Engine", "The SLUDGE Engine was expected at ..\\Engine\\SLUDGE Engine.exe relative to the Project Manager executable. Make sure it's there to make the Run Game button work.");
+	// On Windows, the engine is OpenSLUDGE.exe, in the folder of the Dev Kit,
+	// which is our working folder.
+	sprintf(cmd, "\"%s\\OpenSLUDGE.exe\"", workingDir);
+	if (!sh_cmd(workingDir, cmd, file)) {
+		errorBox("Couldn't find the SLUDGE engine", "To run the game, we start OpenSLUDGE.exe from the folder of the Dev Kit. Make sure it's there.");
 	}
 #else
 	sprintf(cmd, "%s", "sludge-engine");
