@@ -149,6 +149,17 @@ GtkFileChooser * SludgeApplication::newFileChooser(const char *title, GtkFileCho
 	return chooser;
 }
 
+// Add a filter for the files of this tool, such as .flo files in the floor
+// maker, to the file chooser, and select it.
+void SludgeApplication::setFileTypeFilter(GtkFileChooser *chooser)
+{
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, getFilterName());
+	addExtensionPattern(filter, getFilterExtension());
+	gtk_file_chooser_add_filter(chooser, filter);
+	gtk_file_chooser_set_filter(chooser, filter);
+}
+
 // Show the file chooser, and return TRUE when someone chose a file.
 gboolean SludgeApplication::runFileChooser(GtkFileChooser *chooser)
 {
@@ -158,14 +169,10 @@ gboolean SludgeApplication::runFileChooser(GtkFileChooser *chooser)
 void SludgeApplication::saveToFile()
 {
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 
 	dialog = newFileChooser ("Save File", GTK_FILE_CHOOSER_ACTION_SAVE);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter (dialog, filter);
+	setFileTypeFilter (dialog);
 
 	if (currentShortname[0] != 0)
 	{
@@ -310,14 +317,10 @@ void SludgeApplication::on_open()
 {
 	if (!reallyClose()) return;
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 
 	dialog = newFileChooser ("Open File", GTK_FILE_CHOOSER_ACTION_OPEN);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter (dialog, filter);
+	setFileTypeFilter (dialog);
 
 	if (runFileChooser (dialog))
 	{

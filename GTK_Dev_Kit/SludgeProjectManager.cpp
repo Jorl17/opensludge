@@ -143,9 +143,9 @@ const char * SludgeProjectManager::getFilterName()
 	return "SLUDGE Project Files (*.slp)";
 }
 
-const char * SludgeProjectManager::getFilterPattern()
+const char * SludgeProjectManager::getFilterExtension()
 {
-	return "*.[sS][lL][pP]";
+	return "slp";
 }
 
 const char * SludgeProjectManager::getUntitledFilename()
@@ -174,15 +174,11 @@ void SludgeProjectManager::postOpen()
 void SludgeProjectManager::postNew()
 {
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 	gboolean success = FALSE;
 
 	dialog = newFileChooser("New SLUDGE Project", GTK_FILE_CHOOSER_ACTION_SAVE);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter(dialog, filter);
+	setFileTypeFilter(dialog);
 
 	gtk_file_chooser_set_current_name(dialog, getUntitledFilename());
 
@@ -711,24 +707,24 @@ void SludgeProjectManager::on_add_file_clicked()
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "SLU/SLD/TRA files");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][uU]");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][dD]");
-	gtk_file_filter_add_pattern(filter, "*.[tT][rR][aA]");
+	addExtensionPattern(filter, "slu");
+	addExtensionPattern(filter, "sld");
+	addExtensionPattern(filter, "tra");
 	gtk_file_chooser_add_filter(dialog, filter);
 
 	slufilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(slufilter, "SLUDGE scripts (*.slu)");
-	gtk_file_filter_add_pattern(slufilter, "*.[sS][lL][uU]");
+	addExtensionPattern(slufilter, "slu");
 	gtk_file_chooser_add_filter(dialog, slufilter);
 
 	sldfilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(sldfilter, "SLUDGE constant definition files (*.sld)");
-	gtk_file_filter_add_pattern(sldfilter, "*.[sS][lL][dD]");
+	addExtensionPattern(sldfilter, "sld");
 	gtk_file_chooser_add_filter(dialog, sldfilter);
 
 	trafilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(trafilter, "SLUDGE translation files (*.tra)");
-	gtk_file_filter_add_pattern(trafilter, "*.[tT][rR][aA]");
+	addExtensionPattern(trafilter, "tra");
 	gtk_file_chooser_add_filter(dialog, trafilter);
 
 	gtk_file_chooser_set_filter(dialog, filter);

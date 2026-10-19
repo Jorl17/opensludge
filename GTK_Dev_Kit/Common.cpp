@@ -70,6 +70,25 @@ message_dialog(GtkMessageType type, const gchar *title, const gchar *message)
 	return response;
 }
 
+// Add a pattern to the filter for the files with the given extension, such as
+// "png", in upper or lower case. Windows ignores case in file names, and in
+// the Windows file dialog, only * and ? are wildcards, so on Windows we add
+// "*.png". On Linux, macOS and other systems, we add "*.[pP][nN][gG]".
+void addExtensionPattern (GtkFileFilter * filter, const char * extension)
+{
+#ifdef __WIN32
+	gchar * pattern = g_strconcat ("*.", extension, NULL);
+#else
+	GString * built = g_string_new ("*.");
+	for (const char * c = extension; *c; c++) {
+		g_string_append_printf (built, "[%c%c]", g_ascii_tolower (*c), g_ascii_toupper (*c));
+	}
+	gchar * pattern = g_string_free (built, FALSE);
+#endif
+	gtk_file_filter_add_pattern (filter, pattern);
+	g_free (pattern);
+}
+
 void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolean tga)
 {
 	GtkFileFilter *pngtgafilter, *pngfilter, *tgafilter;
@@ -77,22 +96,20 @@ void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolea
 	if (png && tga) {
 		pngtgafilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(pngtgafilter, "PNG/TGA images");
-		gtk_file_filter_add_mime_type(pngtgafilter, "image/png");
-		gtk_file_filter_add_mime_type(pngtgafilter, "image/x-tga");
-		gtk_file_filter_add_pattern(pngtgafilter, "*.[tT][gG][aA]");
+		addExtensionPattern(pngtgafilter, "png");
+		addExtensionPattern(pngtgafilter, "tga");
 		gtk_file_chooser_add_filter(theFileChooser, pngtgafilter);
 	}
 	if (png) {
 		pngfilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(pngfilter, "PNG images");
-		gtk_file_filter_add_mime_type(pngfilter, "image/png");
+		addExtensionPattern(pngfilter, "png");
 		gtk_file_chooser_add_filter(theFileChooser, pngfilter);
 	}
 	if (tga) {
 		tgafilter = gtk_file_filter_new();
 		gtk_file_filter_set_name(tgafilter, "TGA images");
-		gtk_file_filter_add_mime_type(tgafilter, "image/x-tga");
-		gtk_file_filter_add_pattern(tgafilter, "*.[tT][gG][aA]");
+		addExtensionPattern(tgafilter, "tga");
 		gtk_file_chooser_add_filter(theFileChooser, tgafilter);
 	}
 	if (png && tga) {

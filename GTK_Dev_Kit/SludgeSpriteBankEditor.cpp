@@ -112,9 +112,9 @@ const char * SludgeSpriteBankEditor::getFilterName()
 	return "SLUDGE Sprite Bank Files (*.duc)";
 }
 
-const char * SludgeSpriteBankEditor::getFilterPattern()
+const char * SludgeSpriteBankEditor::getFilterExtension()
 {
-	return "*.[dD][uU][cC]";
+	return "duc";
 }
 
 const char * SludgeSpriteBankEditor::getUntitledFilename()

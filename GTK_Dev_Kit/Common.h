@@ -30,6 +30,7 @@ bool errorBox (const char * head, const char * msg);
 }
 #endif
 
+void addExtensionPattern (GtkFileFilter * filter, const char * extension);
 void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolean tga);
 char * joinTwoStrings (const char * a, const char * b);
 bool fileExists(char * file);

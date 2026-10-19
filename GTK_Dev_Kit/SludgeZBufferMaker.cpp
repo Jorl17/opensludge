@@ -89,9 +89,9 @@ const char * SludgeZBufferMaker::getFilterName()
 	return "SLUDGE Z-Buffer Files (*.zbu)";
 }
 
-const char * SludgeZBufferMaker::getFilterPattern()
+const char * SludgeZBufferMaker::getFilterExtension()
 {
-	return "*.[zZ][bB][uU]";
+	return "zbu";
 }
 
 const char * SludgeZBufferMaker::getUntitledFilename()
