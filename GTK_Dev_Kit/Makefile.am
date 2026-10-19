@@ -2,8 +2,8 @@ SUBDIRS = support
 
 bin_PROGRAMS = sludge-floormaker sludge-zbuffermaker sludge-spritebankeditor sludge-translationeditor sludge-projectmanager sludge-compiler
 
-check_PROGRAMS = view_test
-TESTS = view_test
+check_PROGRAMS = view_test sh_cmd_test
+TESTS = view_test sh_cmd_test
 
 view_test_SOURCES = \
 	../tests/devkit/view_test.cpp \
@@ -16,6 +16,9 @@ view_test_SOURCES = \
 	../source/CommonCode/tga.cpp ../source/CommonCode/tga.h
 view_test_CPPFLAGS = $(AM_CPPFLAGS) -DVIEW_TEST_FOLDER=\"$(abs_top_srcdir)/tests/devkit\"
 view_test_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
+
+sh_cmd_test_SOURCES = ../tests/devkit/sh_cmd_test.cpp Common.cpp Common.h
+sh_cmd_test_LDADD = @GTK_LIBS@
 
 sludge_floormaker_SOURCES = \
 	FloorMakerMain.cpp SludgeFloorMaker.cpp SludgeFloorMaker.h \
