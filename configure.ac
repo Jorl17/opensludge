@@ -30,13 +30,16 @@ if test "x$enable_doc" = x; then
   enable_doc="no"
 fi
 
-# Are we cross compiling for windows?
+# Are we building for Windows, with MinGW (32-bit or 64-bit) or Cygwin?
 case "${host}" in
-        i[[3456789]]86-mingw32*) WIN32="yes" ;;
+        *mingw32*) WIN32="yes" ;;
         *cygwin*) WIN32="yes" ;;
         *) WIN32="no" ;;
 esac
 AM_CONDITIONAL([COND_WIN32], test x"$WIN32" = xyes)
+if test x"$WIN32" = xyes; then
+  AC_CHECK_TOOL([WINDRES], [windres])
+fi
 
 # Checks for libraries.
 if test "x$enable_devkit" = xyes; then
