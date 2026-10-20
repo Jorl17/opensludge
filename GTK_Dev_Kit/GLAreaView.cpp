@@ -20,8 +20,8 @@
 
 #include "EditorView.h"
 
-// The view is a GtkGLArea, which creates and manages the OpenGL context, and
-// swaps the buffers after every render.
+// On Linux and Windows, the view is a GtkGLArea, which creates and manages
+// the OpenGL context, and swaps the buffers after every render.
 class GLAreaView : public EditorView {
 private:
 	GtkWidget *area;

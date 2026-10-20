@@ -246,9 +246,9 @@ void SludgeGLApplication::refreshGL()
 }
 
 /*
- * Make the OpenGL context of the view current. GTK draws the window with its
- * own OpenGL context, so outside the "render" handler, we call this before we
- * create textures.
+ * Make the OpenGL context of the view current. On Linux and Windows, GTK draws
+ * the window with its own OpenGL context, so outside the "render" handler, we
+ * call this before we create textures.
  */
 gboolean SludgeGLApplication::makeViewCurrent()
 {
@@ -296,9 +296,9 @@ void SludgeGLApplication::renderView()
 		if (zoomFitPending) on_zoom_fit_clicked ();
 
 		// We set the viewport and the projection here, and not in reshape or
-		// in the zoom and scroll handlers. GTK draws the rest of the window
-		// with an OpenGL context of its own, and makes the context of this
-		// view current only while it runs the render handler.
+		// in the zoom and scroll handlers. On Linux and Windows, GTK draws the
+		// rest of the window with an OpenGL context of its own, and makes the
+		// context of this view current only while it runs the render handler.
 		// If we set them in another handler, we would change the context that
 		// GTK draws the window with, and GTK would draw its buttons and labels
 		// wrongly.

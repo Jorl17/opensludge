@@ -62,7 +62,11 @@ sludge_spritebankeditor_SOURCES = \
 	../source/CommonCode/version.h
 
 # The OpenGL view of the editors, see EditorView.h.
+if COND_MACOS
+EDITOR_VIEW = EditorView.h OffscreenView.cpp
+else
 EDITOR_VIEW = EditorView.h GLAreaView.cpp
+endif
 sludge_floormaker_SOURCES += $(EDITOR_VIEW)
 sludge_zbuffermaker_SOURCES += $(EDITOR_VIEW)
 sludge_spritebankeditor_SOURCES += $(EDITOR_VIEW)
@@ -194,8 +198,11 @@ AM_CPPFLAGS += \
 	-DDATADIR='"$(pkgdatadir)/"'
 
 if COND_MACOS
-# On macOS, we find the Resources folder of the app with CoreFoundation.
-AM_LDFLAGS = -framework CoreFoundation
+# On macOS, we find the Resources folder of the app with CoreFoundation, and
+# create the OpenGL contexts of the editor views with CGL, which Apple marks
+# as deprecated.
+AM_CPPFLAGS += -DGL_SILENCE_DEPRECATION
+AM_LDFLAGS = -framework CoreFoundation -framework OpenGL
 endif
 
 sludge_floormaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@

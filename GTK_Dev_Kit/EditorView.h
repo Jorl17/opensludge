@@ -19,14 +19,16 @@
 #include <gtk/gtk.h>
 
 // The OpenGL view of an editor: the widget that shows it, and its OpenGL
-// context. We implement it in GLAreaView.cpp, with a GtkGLArea.
+// context. We build the Dev Kit with one implementation of it, in
+// GLAreaView.cpp on Linux and Windows, and in OffscreenView.cpp on macOS.
 class EditorView {
 public:
 	virtual ~EditorView() {}
 	// Return the widget to put into the window.
 	virtual GtkWidget *getWidget() = 0;
 	// Make the OpenGL context of the view current. Return FALSE when the
-	// view has no context yet.
+	// view has no context yet, or when we couldn't make it current. In
+	// OffscreenView, we create the context the first time.
 	virtual gboolean makeCurrent() = 0;
 };
 
