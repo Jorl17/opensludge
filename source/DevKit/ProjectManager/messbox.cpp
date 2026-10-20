@@ -131,6 +131,7 @@ void addCommentWithLine (int errorType, const char * comment, const char * filen
 
 	delete [] after;
 	delete [] filenameWline;
+	delete [] s;
 
 	numErrors ++;
 
