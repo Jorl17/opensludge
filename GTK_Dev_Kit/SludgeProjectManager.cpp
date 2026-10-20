@@ -318,16 +318,25 @@ void SludgeProjectManager::readIniFile() {
 	programSettings.compilerWriteStrings = 0;
 	programSettings.compilerVerbose = 1;
 	programSettings.searchSensitive = 0;
-#ifdef __WIN32
+#if defined(__WIN32)
 	sprintf(editor, "%s", "notepad.exe");
 	sprintf(imageViewer, "%s", "rundll32.exe shimgvw.dll,ImageView_Fullscreen");
 	sprintf(audioPlayer, "%s", "mplay32.exe");
 	sprintf(modPlayer, "%s", "");
-#else
+#elif defined(__APPLE__)
+	// With open, macOS opens the file in the default app for files of its
+	// type, and with open -t, in the default text editor.
+	sprintf(editor, "%s", "open -t");
+	sprintf(imageViewer, "%s", "open");
+	sprintf(audioPlayer, "%s", "open");
+	sprintf(modPlayer, "%s", "open");
+#elif defined(__unix__)
 	sprintf(editor, "%s", "gedit");
 	sprintf(imageViewer, "%s", "eog");
 	sprintf(audioPlayer, "%s", "totem");
 	sprintf(modPlayer, "%s", "totem");
+#else
+#error "No default programs for the files of a project on this platform"
 #endif
 		
 	if (fp) {
@@ -578,6 +587,35 @@ void SludgeProjectManager::on_files_tree_selection_changed(GtkTreeSelection *the
 	listChanged(RESOURCE_TREEVIEW);
 }
 
+// Return the command with which we start a tool of the Dev Kit.
+static const char * getToolCommand(whichProgram program)
+{
+	switch (program) {
+#if defined(__WIN32)
+		case FLOORMAKER: return "sludge-floormaker.exe";
+		case SPRITEBANKEDITOR: return "sludge-spritebankeditor.exe";
+		case ZBUFFERMAKER: return "sludge-zbuffermaker.exe";
+		case TRANSLATIONEDITOR: return "sludge-translationeditor.exe";
+#elif defined(__APPLE__)
+		// On macOS, each tool is an app, which we start with open. With -n,
+		// open starts a new instance even when the app is already running, so
+		// that the new instance receives the file after --args.
+		case FLOORMAKER: return "open -n -a \"SLUDGE Floor Maker\" --args";
+		case SPRITEBANKEDITOR: return "open -n -a \"SLUDGE Sprite Bank Editor\" --args";
+		case ZBUFFERMAKER: return "open -n -a \"SLUDGE Z-Buffer Maker\" --args";
+		case TRANSLATIONEDITOR: return "open -n -a \"SLUDGE Translation Editor\" --args";
+#elif defined(__unix__)
+		case FLOORMAKER: return "sludge-floormaker";
+		case SPRITEBANKEDITOR: return "sludge-spritebankeditor";
+		case ZBUFFERMAKER: return "sludge-zbuffermaker";
+		case TRANSLATIONEDITOR: return "sludge-translationeditor";
+#else
+#error "No command to start the tools on this platform"
+#endif
+	}
+	return "";
+}
+
 void SludgeProjectManager::on_treeview_row_activated(GtkTreeView *theTreeView, GtkTreePath *thePath, GtkTreeViewColumn *theColumn, whichTreeview whichOne)
 {
 	GtkTreeModel *treeModel;
@@ -627,34 +665,18 @@ void SludgeProjectManager::on_treeview_row_activated(GtkTreeView *theTreeView, G
 		case FILE_TREEVIEW:
 			extension = tx + strlen(tx) - 4;
 			if ((strlen(tx) > 4) && (!strcmp(extension, ".tra") || !strcmp(extension, ".TRA"))) {
-#ifdef __WIN32
-				cmd = "sludge-translationeditor.exe";	
-#else
-				cmd = "sludge-translationeditor";	
-#endif
+				cmd = getToolCommand(TRANSLATIONEDITOR);
 			}
 			break;
 		case RESOURCE_TREEVIEW:
 			extension = tx + strlen(tx) - 4;	
 			if (strlen(tx) > 4) {
 				if        (!strcmp(extension, ".flo") || !strcmp(extension, ".FLO")) {
-#ifdef __WIN32
-					cmd = "sludge-floormaker.exe";
-#else
-					cmd = "sludge-floormaker";
-#endif
+					cmd = getToolCommand(FLOORMAKER);
 				} else if (!strcmp(extension, ".duc") || !strcmp(extension, ".DUC")) {
-#ifdef __WIN32
-					cmd = "sludge-spritebankeditor.exe";	
-#else
-					cmd = "sludge-spritebankeditor";	
-#endif
+					cmd = getToolCommand(SPRITEBANKEDITOR);
 				} else if (!strcmp(extension, ".zbu") || !strcmp(extension, ".ZBU")) {
-#ifdef __WIN32
-					cmd = "sludge-zbuffermaker.exe";	
-#else
-					cmd = "sludge-zbuffermaker";	
-#endif
+					cmd = getToolCommand(ZBUFFERMAKER);
 				} else if (!strcmp(extension, ".png") || !strcmp(extension, ".PNG")
 						|| !strcmp(extension, ".tga") || !strcmp(extension, ".TGA")) {
 					cmd = imageViewer;
@@ -815,7 +837,7 @@ void SludgeProjectManager::on_comp_gamebutton_clicked()
 {
 	char *file = getFullPath(gameFile);
 
-#ifdef __WIN32
+#if defined(__WIN32)
 	// On Windows, the engine is OpenSLUDGE.exe, in the folder of the Dev Kit,
 	// which is our working folder.
 	gchar *cmd = g_strdup_printf("\"%s\\OpenSLUDGE.exe\"", workingDir);
@@ -823,8 +845,14 @@ void SludgeProjectManager::on_comp_gamebutton_clicked()
 		errorBox("Couldn't find the SLUDGE engine", "To run the game, we start OpenSLUDGE.exe from the folder of the Dev Kit. Make sure it's there.");
 	}
 	g_free(cmd);
-#else
+#elif defined(__APPLE__)
+	// On macOS, the engine is OpenSLUDGE.app, which we start with open, as
+	// we start the tools.
+	sh_cmd(workingDir, "open -n -a OpenSLUDGE --args", file);
+#elif defined(__unix__)
 	sh_cmd(workingDir, "sludge-engine", file);
+#else
+#error "No command to start the engine on this platform"
 #endif
 
 	deleteString(file);
@@ -890,30 +918,5 @@ void SludgeProjectManager::on_preferences()
 
 void SludgeProjectManager::on_program_activate(whichProgram program)
 {
-	const char *exe;
-	char executable[200];
-#ifdef __WIN32
-	exe = ".exe";
-#else
-	exe = "";
-#endif
-
-	switch (program) {
-		case FLOORMAKER:
-			sprintf(executable, "sludge-floormaker%s", exe);
-			break;
-		case SPRITEBANKEDITOR:
-			sprintf(executable, "sludge-spritebankeditor%s", exe);
-			break;
-		case ZBUFFERMAKER:
-			sprintf(executable, "sludge-zbuffermaker%s", exe);
-			break;
-		case TRANSLATIONEDITOR:
-			sprintf(executable, "sludge-translationeditor%s", exe);
-			break;
-		default:
-			break;
-	}
-
-	sh_cmd(workingDir, executable, NULL);
+	sh_cmd(workingDir, getToolCommand(program), NULL);
 }
