@@ -54,7 +54,7 @@ jobs:
           fi
 
   devkit:
-    name: DevKit (GTK 3)
+    name: DevKit (Linux)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: devkit-view-test
+          name: devkit-linux-view-test
           path: |
             GTK_Dev_Kit/*-actual.png
             GTK_Dev_Kit/*-difference.png
@@ -114,7 +114,7 @@ jobs:
           done
 
   windows:
-    name: Windows
+    name: Windows (x64)
     runs-on: windows-2022
     defaults:
       run:
@@ -155,12 +155,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-zips
+          name: zips-windows-x64
           path: dist/*.zip
           if-no-files-found: error
 
   windows-devkit:
-    name: DevKit (Windows)
+    name: DevKit (Windows x64)
     needs: windows
     runs-on: windows-2022
     defaults:
@@ -194,11 +194,11 @@ jobs:
           # On Windows, a folder named install would clash with INSTALL.
           make install DESTDIR="$PWD/devkit-install"
 
-      # We put the engine from the OpenSLUDGE zip of the Windows job into the
-      # Dev Kit, to run the games with.
+      # We put the engine from the OpenSLUDGE zip of the Windows (x64) job
+      # into the Dev Kit, to run the games with.
       - uses: actions/download-artifact@v4
         with:
-          name: windows-zips
+          name: zips-windows-x64
           path: engine
 
       - name: Make the zip
@@ -231,12 +231,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-devkit-zip
+          name: devkit-windows-x64
           path: dist/*.zip
           if-no-files-found: error
 
   windows-x86:
-    name: Windows (32-bit, from Windows XP)
+    name: Windows (x86, from Windows XP)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -267,20 +267,24 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x86-zips
+          name: zips-windows-x86
           path: dist/*.zip
           if-no-files-found: error
 
   macos:
-    name: macOS (${{ matrix.arch }})
+    name: macOS (${{ matrix.name }})
     runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: arm64
+            name: Apple Silicon
+            label: apple-silicon
             min_macos: '11.0'
           - arch: x86_64
+            name: Intel
+            label: intel
             min_macos: '10.13'
     steps:
       - uses: actions/checkout@v4
@@ -315,7 +319,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sludge-engine-macos-${{ matrix.arch }}
+          name: engine-macos-${{ matrix.label }}
           path: build/sludge-engine
           if-no-files-found: error
 
@@ -334,14 +338,14 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: sludge-engine-macos-*
+          pattern: engine-macos-*
           path: engines
 
       - name: Make the universal executable
         run: |
           mkdir -p bin/arm64 bin/x86_64 bin/universal
-          cp engines/sludge-engine-macos-arm64/sludge-engine bin/arm64/
-          cp engines/sludge-engine-macos-x86_64/sludge-engine bin/x86_64/
+          cp engines/engine-macos-apple-silicon/sludge-engine bin/arm64/
+          cp engines/engine-macos-intel/sludge-engine bin/x86_64/
           lipo -create -output bin/universal/sludge-engine bin/arm64/sludge-engine bin/x86_64/sludge-engine
           chmod +x bin/*/sludge-engine
           lipo -info bin/universal/sludge-engine
@@ -458,12 +462,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-apps
+          name: zips-macos
           path: dist/*.zip
           if-no-files-found: error
 
   macos-devkit:
-    name: DevKit (macOS)
+    name: DevKit (macOS Apple Silicon)
     needs: macos
     runs-on: macos-15
     env:
@@ -490,11 +494,11 @@ jobs:
           make -j"$(sysctl -n hw.ncpu)"
           make install DESTDIR="$PWD/devkit-install"
 
-      # We put the Apple Silicon engine of the macOS job into the Dev Kit, to
+      # We put the engine of the macOS (Apple Silicon) job into the Dev Kit, to
       # run the games with.
       - uses: actions/download-artifact@v4
         with:
-          name: sludge-engine-macos-arm64
+          name: engine-macos-apple-silicon
           path: engine
 
       - name: Set up code signing
@@ -654,15 +658,16 @@ jobs:
           start OpenSLUDGE sludge-engine run-game "$game"
           [ $failed = no ]
 
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - name: Keep the screenshots and logs of the failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
         with:
-          name: macos-devkit-screenshots
+          name: devkit-macos-test-screenshots
           path: screenshots
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-devkit-zip
+          name: devkit-macos-apple-silicon
           path: dist/*.zip
           if-no-files-found: error
 
@@ -678,27 +683,27 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: macos-apps
+          name: zips-macos
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: windows-zips
+          name: zips-windows-x64
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: windows-x86-zips
+          name: zips-windows-x86
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: windows-devkit-zip
+          name: devkit-windows-x64
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: macos-devkit-zip
+          name: devkit-macos-apple-silicon
           path: dist
 
       - name: Publish
