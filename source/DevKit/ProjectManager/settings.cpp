@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <glib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -342,13 +343,14 @@ void writeFinalData (FILE * mainFile) {
 	fputc (settings.frameSpeed, mainFile);
 	writeString ("", mainFile); // Unused - was used for registration.
 
-	// Now write the date and time of compilation...
-
-	/* TODO - but not used by the engine anyway
-		SYSTEMTIME systemTime;*/
+	// The time of compilation, as a Windows FILETIME, which counts intervals
+	// of 100 nanoseconds from 1 January 1601 UTC. The engine saves it in each
+	// saved game, and loads only the saved games with the same time. GLib
+	// gives us the time in microseconds from 1 January 1970 UTC.
+	uint64_t intervals = ((uint64_t) g_get_real_time () + 11644473600000000ULL) * 10;
 	FILETIME fileTime;
-	//GetSystemTime (& systemTime);
-	//SystemTimeToFileTime (& systemTime, & fileTime);
+	fileTime.dwLowDateTime = (uint32_t) intervals;
+	fileTime.dwHighDateTime = (uint32_t) (intervals >> 32);
 	fwrite (& fileTime, sizeof (fileTime), 1, mainFile);
 
 	// More bits
