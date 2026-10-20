@@ -94,7 +94,7 @@ bool createObjectType (char * code, const char * fName, stringArray * & globalVa
 	if (! objFile) return addComment (ERRORTYPE_SYSTEMERROR, "Can't write object type file", fbuff, NULL, 0);
 	writeString (keepName, objFile);
 	writeString (fName, objFile);
-	delete keepName;
+	delete [] keepName;
 	put2bytes (stringValue, objFile);
 
 	if (destroyFirst (getBits)) return addComment (ERRORTYPE_INTERNALERROR, "OT1: What's going on?", getBits -> string, NULL, 0);
@@ -125,7 +125,7 @@ bool createObjectType (char * code, const char * fName, stringArray * & globalVa
 
 					setCompilerText (COMPILER_TXT_ITEM, displayName);
 					destroyAll (getBitInsides);
-					delete newFuncName;
+					delete [] newFuncName;
 					numCombis ++;
 				} else {
 					destroyFirst (getBitInsides);
@@ -227,11 +227,11 @@ bool createObjectType (char * code, const char * fName, stringArray * & globalVa
 
 	destroyAll (getContents);
 
-	delete objNam;
-	delete displayName;
+	delete [] objNam;
+	delete [] displayName;
 
 	// Forget "class"... no more member variables
-	delete inThisClass;
+	delete [] inThisClass;
 	inThisClass = emptyString;
 
 	fclose (objFile);
@@ -310,8 +310,8 @@ bool linkObjectFile (FILE * mainFile, FILE * indexFile, int i, unsigned long cal
 	}
 #endif
 
-	delete objNam;
-	delete fileNam;
+	delete [] objNam;
+	delete [] fileNam;
 	fclose (theNumFile);
 
 	put2bytes (numCom, mainFile);
@@ -329,8 +329,8 @@ bool linkObjectFile (FILE * mainFile, FILE * indexFile, int i, unsigned long cal
 
 		setUsed (CHECKUSED_FUNCTIONS, f);
 
-		delete objNam;
-		delete funcToCall;
+		delete [] objNam;
+		delete [] funcToCall;
 	}
 	fclose (fileIn);
 	sprintf (fbuff, "obj%05i.nu~", i);

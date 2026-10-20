@@ -509,7 +509,7 @@ gboolean SludgeTranslationEditor::searchEqualFunc(GtkTreeModel *model, const gch
 	g_free(original);
 	g_free(translation);
 	g_regex_unref(regex);
-	delete pattern;
+	delete [] pattern;
 
 	return retval;
 }

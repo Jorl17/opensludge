@@ -47,8 +47,8 @@ void clearTranslations ()
 	translationReg * oldReg;
 	while (oldReg = allTranslations) {
 		allTranslations = allTranslations->next;
-		delete oldReg->filename;
-		delete oldReg->name;
+		delete [] oldReg->filename;
+		delete [] oldReg->name;
 		delete oldReg;
 	}
 	numberOfValidTranslations = 0;
@@ -75,7 +75,7 @@ void registerTranslationFile (char * filename) {
 	int ID = -1;
 
 	do {
-		delete theLine;
+		delete [] theLine;
 		theLine = readText (fp);
 
 		if (theLine && theLine[0]) {
@@ -127,12 +127,12 @@ bool cacheTranslationData (char * f) {
 
 	char * theLine = NULL;
 	do {
-		delete theLine;
+		delete [] theLine;
 		theLine = readText (fp);
 	} while (theLine && strcmp (theLine, "[DATA]"));
 
 	if (! theLine) return addComment (ERRORTYPE_PROJECTERROR, "No [DATA] all of a sudden in file", NULL, f,0);
-	delete theLine;
+	delete [] theLine;
 
 	do {
 		theLine = readText (fp);
@@ -187,7 +187,7 @@ char * translateMe (char * originalIn, char * filename) {
 
 	if (locInArray >= 0) {
 		trans = copyString (returnElement (transTo, locInArray));
-		delete original;
+		delete [] original;
 	} else {
 		if (original[0]) addComment (ERRORTYPE_PROJECTWARNING, "No translation for", original, filename,0);
 		trans = original;
@@ -195,13 +195,13 @@ char * translateMe (char * originalIn, char * filename) {
 
 	for (int i = 0; i < spacesAtStart; i ++) {
 		original = joinStrings (" ", trans);
-		delete trans;
+		delete [] trans;
 		trans = original;
 	}
 
 	for (int i = 0; i < spacesAtEnd; i ++) {
 		original = joinStrings (trans, " ");
-		delete trans;
+		delete [] trans;
 		trans = original;
 	}
 
@@ -228,7 +228,7 @@ bool addTranslationData (translationReg * trans, stringArray * theSA, FILE * mai
 		put4bytes ((ftell (projectFile) + indexSize), indexFile);
 		char * translation = translateMe (theSA -> string, trans->filename);
 		writeString (translation, projectFile);
-		delete translation;
+		delete [] translation;
 		theSA = theSA -> next;
 	}
 

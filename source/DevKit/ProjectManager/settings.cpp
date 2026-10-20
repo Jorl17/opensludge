@@ -30,19 +30,19 @@ bool silent = true;
 
 void noSettings () {
 
-	if (settings.quitMessage) delete settings.quitMessage;
+	if (settings.quitMessage) delete [] settings.quitMessage;
 	settings.quitMessage = joinStrings ("Are you sure you want to quit?", "");
-	if (settings.customIcon) delete settings.customIcon;
+	if (settings.customIcon) delete [] settings.customIcon;
 	settings.customIcon = joinStrings ("", "");
-	if (settings.customLogo) delete settings.customLogo;
+	if (settings.customLogo) delete [] settings.customLogo;
 	settings.customLogo = joinStrings ("", "");
-	if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
+	if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
 	settings.runtimeDataFolder = joinStrings ("save", "");
-	if (settings.finalFile) delete settings.finalFile;
+	if (settings.finalFile) delete [] settings.finalFile;
 	settings.finalFile =joinStrings ("Gamedata", "");
-	if (settings.windowName) delete settings.windowName;
+	if (settings.windowName) delete [] settings.windowName;
 	settings.windowName = joinStrings ("New SLUDGE Game", "");
-	if (settings.originalLanguage) delete settings.originalLanguage;
+	if (settings.originalLanguage) delete [] settings.originalLanguage;
 	settings.originalLanguage =joinStrings ("English", "");
 	settings.screenWidth = 640;
 	settings.screenHeight = 480;
@@ -71,31 +71,31 @@ void readDir (char * t) {
 	stringArray * splitLine = splitString (t, '=', ONCE);
 	if (splitLine -> next) {
 		if (strcmp (splitLine -> string, "quitmessage") == 0) {
-			delete settings.quitMessage;
+			delete [] settings.quitMessage;
 			settings.quitMessage = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "customicon") == 0) {
-			if (settings.customIcon) delete settings.customIcon;
+			if (settings.customIcon) delete [] settings.customIcon;
 			settings.customIcon = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "customlogo") == 0) {
-			if (settings.customLogo) delete settings.customLogo;
+			if (settings.customLogo) delete [] settings.customLogo;
 			settings.customLogo = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "datafolder") == 0) {
-			if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
+			if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
 			settings.runtimeDataFolder = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "finalfile") == 0) {
-			if (settings.finalFile) delete settings.finalFile;
+			if (settings.finalFile) delete [] settings.finalFile;
 			settings.finalFile = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "windowname") == 0) {
-			if (settings.windowName) delete settings.windowName;
+			if (settings.windowName) delete [] settings.windowName;
 			settings.windowName = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "language") == 0) {
-			if (settings.originalLanguage) delete settings.originalLanguage;
+			if (settings.originalLanguage) delete [] settings.originalLanguage;
 			settings.originalLanguage = joinStrings ("", splitLine -> next -> string);
 
 		// NEW MOUSE SETTING
@@ -164,7 +164,7 @@ bool readSettings (FILE * fp) {
 			readDir (grabLine);
 		} else
 			keepGoing = false;
-		delete grabLine;
+		delete [] grabLine;
 	}
 
 	if (! settings.finalFile) return addComment (ERRORTYPE_PROJECTERROR, "Vital line missing from project", "finalfile", NULL,0);
@@ -174,12 +174,12 @@ bool readSettings (FILE * fp) {
 
 void killSettingsStrings ()
 {
-	if (settings.quitMessage) delete settings.quitMessage;
-	if (settings.customIcon) delete settings.customIcon;
-	if (settings.customLogo) delete settings.customLogo;
-	if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
-	if (settings.finalFile) delete settings.finalFile;
-	if (settings.windowName) delete settings.windowName;
+	if (settings.quitMessage) delete [] settings.quitMessage;
+	if (settings.customIcon) delete [] settings.customIcon;
+	if (settings.customLogo) delete [] settings.customLogo;
+	if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
+	if (settings.finalFile) delete [] settings.finalFile;
+	if (settings.windowName) delete [] settings.windowName;
 }
 
 
@@ -289,7 +289,7 @@ FILE * openFinalFile (const char * addMe, const char * mode) {
 
 	gotoSourceDirectory ();
 	FILE * fp = fopen (fullName, mode);
-	delete fullName;
+	delete [] fullName;
 
 	return fp;
 }

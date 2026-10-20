@@ -40,7 +40,7 @@ bool globalVar (char * theString, stringArray * & globalVars, compilationSpace &
 		thisVar->line = fileLine;
 		
 		
-		delete variableName;
+		delete [] variableName;
 
 		if (getVarName -> next) {
 			if (! compileSourceLine (getVarName -> next -> string, globalVars, globalSpace, nullArray, filename, 0)) return addComment (ERRORTYPE_PROJECTERROR, "Can't compile code to set initial value for global variable", multi -> string, filename,0);
@@ -64,7 +64,7 @@ bool realWork (int fileNumber, stringArray * & globalVars, compilationSpace & gl
 	theSource = grabWholeFile (inputName);
 	unlink (inputName);
 	origName = splitString (theSource, '*', ONCE);
-	delete theSource;
+	delete [] theSource;
 	
 	if (! origName) return false;
 

@@ -195,7 +195,7 @@ bool preProcess (char * codeFileName, int fileNumber, stringArray * & strings, s
 		index ++;
 	}
 
-	delete wholeFile;
+	delete [] wholeFile;
 	fclose (outputFile);
 	return true;
 }

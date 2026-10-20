@@ -48,8 +48,8 @@ void newFile (transLine ** firstTransLine) {
 		selectedTransLine = *firstTransLine;
 		*firstTransLine = (*firstTransLine) -> next;
 		
-		delete selectedTransLine -> transFrom;
-		delete selectedTransLine -> transTo;
+		delete [] selectedTransLine -> transFrom;
+		delete [] selectedTransLine -> transTo;
 		delete selectedTransLine;
 	}
 }
@@ -104,7 +104,7 @@ bool loadTranslationFile (char * fileIn, transLine ** firstTransLine, char **lan
 		} else {
 			theMode mode = MODE_UNKNOWN;
 			for (;;) {
-				delete line;
+				delete [] line;
 				line = readText (fp);
 				if (line == NULL) break;
 				switch (line[0]) {
@@ -145,13 +145,13 @@ bool loadTranslationFile (char * fileIn, transLine ** firstTransLine, char **lan
 				}
 			}
 		}
-		delete line;
+		delete [] line;
 	}
 	fclose (fp);
 	if (error) {
 		errorBox (error, file);
 	}
-	delete file;
+	delete [] file;
 	return (error == 0);
 }
 
@@ -209,7 +209,7 @@ int foundStringInFileDel (char * string, transLine ** firstTransLine) {
 	
 	hunt->type = TYPE_NEW;
 	hunt->exists = 1;
-	delete string;
+	delete [] string;
 	return 1;
 }
 
@@ -219,7 +219,7 @@ int foundStringInFileEscaped (char * string, transLine **firstTransLine) {
 	char * rebuilt = copyString ("");
 	while (bits) {
 		char * temp = joinStrings (rebuilt, bits->string);
-		delete rebuilt;
+		delete [] rebuilt;
 		rebuilt = temp;
 		destroyFirst (bits);
 	}
@@ -273,7 +273,7 @@ int updateFromSource (char * filename, transLine **firstTransLine) {
 				}
 			}
 		}
-		delete wholeLine;
+		delete [] wholeLine;
 	}
 	
 	fclose (source);
@@ -307,7 +307,7 @@ bool updateFromProject (const char * filename, transLine **firstTransLine) {
 					totalNew += foundStringInFileDel (copyString (bits -> next -> string), firstTransLine);
 				}
 			}
-			delete theLine;
+			delete [] theLine;
 		}
 		if (theLine == NULL) {
 			fclose (fp);
@@ -315,7 +315,7 @@ bool updateFromProject (const char * filename, transLine **firstTransLine) {
 			return false;
 		}
 		while (theLine) {
-			delete theLine;
+			delete [] theLine;
 			theLine = readText (fp);
 			if (theLine) totalNew += updateFromSource (theLine, firstTransLine);
 		}
@@ -328,15 +328,15 @@ bool updateFromProject (const char * filename, transLine **firstTransLine) {
 				if (prev) {
 					prev->next = hunt->next;
 					
-					delete hunt -> transFrom;
-					delete hunt -> transTo;
+					delete [] hunt -> transFrom;
+					delete [] hunt -> transTo;
 					delete hunt;
 					hunt = prev;
 				} else {
 					*firstTransLine = (*firstTransLine) -> next;
 
-					delete hunt -> transFrom;
-					delete hunt -> transTo;
+					delete [] hunt -> transFrom;
+					delete [] hunt -> transTo;
 					delete hunt;
 					hunt = *firstTransLine;					
 				}

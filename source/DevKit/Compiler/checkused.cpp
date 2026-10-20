@@ -24,7 +24,7 @@ void warnAboutUnused (int type, stringArray * temp, const char * preamble, strin
 		{
 			char * buff = joinStrings (preamble, temp->string, " not used");
 			addCommentWithLine(ERRORTYPE_PROJECTWARNING, buff, files ? files->string : 0, temp->line);
-			delete buff;
+			delete [] buff;
 		}
 		i ++;
 		temp = temp->next;
