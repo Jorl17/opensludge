@@ -37,6 +37,7 @@
 #include "Common.h"
 
 #include "SludgeSpriteBankEditor.h"
+#include "ToolNames.h"
 #include "draw2d.h"
 
 SludgeSpriteBankEditor::SludgeSpriteBankEditor()
@@ -104,7 +105,7 @@ gboolean SludgeSpriteBankEditor::init(gboolean calledFromConstructor)
 
 const char * SludgeSpriteBankEditor::getWindowTitle()
 {
-	return "SLUDGE Sprite Bank Editor";
+	return SPRITEBANKEDITOR_NAME;
 }
 
 const char * SludgeSpriteBankEditor::getFilterName()

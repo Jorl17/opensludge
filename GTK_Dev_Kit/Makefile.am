@@ -168,6 +168,7 @@ dist_pkgdata_DATA = \
 	../images/compiler/compiler_16x16x32.png ../images/gameIcon/gameIcon_16x16x32.png
 
 EXTRA_DIST = \
+	ToolNames.h \
 	FloorMaker.rc ZBufferMaker.rc SpriteBankEditor.rc TranslationEditor.rc ProjectManager.rc \
 	../images/flags/flags.ico \
 	../images/floorIcon/floorIcon.ico ../images/zIcon/zIcon.ico \

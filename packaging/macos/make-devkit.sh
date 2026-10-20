@@ -18,10 +18,19 @@ here=$(cd "$(dirname "$0")" && pwd)
 kit="$output/OpenSLUDGE Dev Kit"
 loaders=lib/gdk-pixbuf-2.0/2.10.0/loaders
 
-# Usage: make_tool_app <executable> <app name> <icon> [<other executable>...]
+# Usage: make_tool_app <executable> <tool> <icon> [<other executable>...]
+#
+# The name of the app is the name of the tool in GTK_Dev_Kit/ToolNames.h,
+# for example FLOORMAKER_NAME for the tool FLOORMAKER.
 make_tool_app () {
-	local executable=$1 name=$2 icon=$3
+	local executable=$1 tool=$2 icon=$3
 	shift 3
+	local name
+	name=$(sed -n "s/^#define ${tool}_NAME \"\(.*\)\"$/\1/p" "$here/../../GTK_Dev_Kit/ToolNames.h")
+	if [ -z "$name" ]; then
+		echo "There is no ${tool}_NAME in GTK_Dev_Kit/ToolNames.h" >&2
+		exit 1
+	fi
 	local app="$kit/$name.app"
 	local resources="$app/Contents/Resources"
 
@@ -80,11 +89,11 @@ rm -rf "$kit"
 mkdir -p "$kit"
 # We run the compiler from the command line, and put it in the app of the
 # project manager, which contains the libraries that the compiler uses.
-make_tool_app sludge-projectmanager "SLUDGE Project Manager" ProjIcon sludge-compiler
-make_tool_app sludge-floormaker "SLUDGE Floor Maker" floorIcon
-make_tool_app sludge-spritebankeditor "SLUDGE Sprite Bank Editor" spriteIcon
-make_tool_app sludge-zbuffermaker "SLUDGE Z-Buffer Maker" zIcon
-make_tool_app sludge-translationeditor "SLUDGE Translation Editor" flags
+make_tool_app sludge-projectmanager PROJECTMANAGER ProjIcon sludge-compiler
+make_tool_app sludge-floormaker FLOORMAKER floorIcon
+make_tool_app sludge-spritebankeditor SPRITEBANKEDITOR spriteIcon
+make_tool_app sludge-zbuffermaker ZBUFFERMAKER zIcon
+make_tool_app sludge-translationeditor TRANSLATIONEDITOR flags
 cp -R "$engine" "$kit/"
 cp "$here/README-DevKit.txt" "$kit/README.txt"
 ls -la "$kit"

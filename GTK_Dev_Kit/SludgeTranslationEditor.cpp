@@ -37,6 +37,7 @@
 #include "Common.h"
 
 #include "SludgeTranslationEditor.h"
+#include "ToolNames.h"
 #include "TranslationEditorMain.h"
 
 SludgeTranslationEditor::SludgeTranslationEditor()
@@ -78,7 +79,7 @@ gboolean SludgeTranslationEditor::init(gboolean calledFromConstructor)
 
 const char * SludgeTranslationEditor::getWindowTitle()
 {
-	return "SLUDGE Translation Editor";
+	return TRANSLATIONEDITOR_NAME;
 }
 
 const char * SludgeTranslationEditor::getFilterName()

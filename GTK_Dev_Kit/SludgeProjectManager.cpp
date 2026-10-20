@@ -42,6 +42,7 @@
 #include "Common.h"
 
 #include "SludgeProjectManager.h"
+#include "ToolNames.h"
 #include "ProjectManagerMain.h"
 
 extern char * gameFile;
@@ -135,7 +136,7 @@ gboolean SludgeProjectManager::init(gboolean calledFromConstructor)
 
 const char * SludgeProjectManager::getWindowTitle()
 {
-	return "SLUDGE Project Manager";
+	return PROJECTMANAGER_NAME;
 }
 
 const char * SludgeProjectManager::getFilterName()
@@ -600,10 +601,10 @@ static const char * getToolCommand(whichProgram program)
 		// On macOS, each tool is an app, which we start with open. With -n,
 		// open starts a new instance even when the app is already running, so
 		// that the new instance receives the file after --args.
-		case FLOORMAKER: return "open -n -a \"SLUDGE Floor Maker\" --args";
-		case SPRITEBANKEDITOR: return "open -n -a \"SLUDGE Sprite Bank Editor\" --args";
-		case ZBUFFERMAKER: return "open -n -a \"SLUDGE Z-Buffer Maker\" --args";
-		case TRANSLATIONEDITOR: return "open -n -a \"SLUDGE Translation Editor\" --args";
+		case FLOORMAKER: return "open -n -a \"" FLOORMAKER_NAME "\" --args";
+		case SPRITEBANKEDITOR: return "open -n -a \"" SPRITEBANKEDITOR_NAME "\" --args";
+		case ZBUFFERMAKER: return "open -n -a \"" ZBUFFERMAKER_NAME "\" --args";
+		case TRANSLATIONEDITOR: return "open -n -a \"" TRANSLATIONEDITOR_NAME "\" --args";
 #elif defined(__unix__)
 		case FLOORMAKER: return "sludge-floormaker";
 		case SPRITEBANKEDITOR: return "sludge-spritebankeditor";

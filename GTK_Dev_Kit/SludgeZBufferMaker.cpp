@@ -37,6 +37,7 @@
 #include "Common.h"
 
 #include "SludgeZBufferMaker.h"
+#include "ToolNames.h"
 
 SludgeZBufferMaker::SludgeZBufferMaker()
  : SludgeGLApplication(joinTwoStrings(getDataFolder(), "ZBufferMaker.glade"), "zIcon", "zbuffermaker")
@@ -81,7 +82,7 @@ gboolean SludgeZBufferMaker::init(gboolean calledFromConstructor)
 
 const char * SludgeZBufferMaker::getWindowTitle()
 {
-	return "SLUDGE Z-Buffer Maker";
+	return ZBUFFERMAKER_NAME;
 }
 
 const char * SludgeZBufferMaker::getFilterName()
