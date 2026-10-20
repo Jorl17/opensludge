@@ -112,9 +112,11 @@ char * readText (FILE * fp) {
 		reply = new char[stringSize];
 		if (fgets ( reply, stringSize, fp )) {
 			if (strlen(reply) < stringSize - 1) {
-				// Get rid of the newline character:
-				while (reply[strlen(reply)-1] == '\x0A' || reply[strlen(reply)-1] == '\x0D') {
-					reply[strlen(reply)-1] = 0;        // remove line ending characters if present
+				// Remove the line ending characters, if there are any. An empty
+				// line has no characters before them.
+				size_t length = strlen(reply);
+				while (length > 0 && (reply[length - 1] == '\x0A' || reply[length - 1] == '\x0D')) {
+					reply[-- length] = 0;
 				}
 				goOn = false;
 			} else {
