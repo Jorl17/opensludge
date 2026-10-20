@@ -293,15 +293,8 @@
             <property name="border_width">12</property>
             <property name="resize_mode">queue</property>
             <child>
-              <object class="GtkGLArea" id="drawingarea1">
+              <object class="GtkBox" id="viewbox">
                 <property name="visible">True</property>
-                <signal name="realize" handler="on_drawingarea1_realize"/>
-                <signal name="render" handler="on_drawingarea1_render"/>
-                <signal name="button_press_event" handler="on_drawingarea1_button_press_event"/>
-                <signal name="motion_notify_event" handler="on_drawingarea1_motion_notify_event"/>
-                <signal name="button_release_event" handler="on_drawingarea1_button_release_event"/>
-                <signal name="scroll_event" handler="on_drawingarea1_scroll_event"/>
-                <signal name="leave_notify_event" handler="on_drawingarea1_leave_notify_event"/>
               </object>
             </child>
           </object>

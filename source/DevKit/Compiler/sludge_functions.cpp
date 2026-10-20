@@ -202,9 +202,9 @@ bool handleIf (char * theIf, stringArray * & localVars, compilationSpace & theSp
 
 		if (elseString[0]) {
 			newString = joinStrings (elseString, "; ");
-			delete elseString;
+			delete [] elseString;
 			elseString = joinStrings (newString, theRest -> string);
-			delete newString;
+			delete [] newString;
 		} else {
 			elseString = joinStrings (getElse -> string, "");
 		}
@@ -496,7 +496,7 @@ YNF expandTypeDefInner (char * & theString) {
 	stringArray * typeDefToLoop = typeDefTo;
 	while (typeDefFromLoop) {
 		if (strcmp (theString, typeDefFromLoop -> string) == 0) {
-			delete theString;
+			delete [] theString;
 			theString = joinStrings (typeDefToLoop -> string, "");
 			if (! theString) {
 				addComment (ERRORTYPE_PROJECTERROR, "Too many constant replacements", NULL);
@@ -572,7 +572,7 @@ bool callAFunction (const char * sourceCode, stringArray * & localVarNames, comp
 		if (! compileSourceLine (keepNameIfUser, localVarNames, theSpace, nullArray, filename,0)) return false;
 	}
 
-	delete keepNameIfUser;
+	delete [] keepNameIfUser;
 
 	outputDoneCode (theSpace, SLU_CALLIT, nP);
 	return true;
@@ -749,7 +749,7 @@ bool compileSourceLineInner (const char * sourceCodeIn, stringArray * & localVar
 
 	destroyAll (getType);
 
-	delete sourceCode;
+	delete [] sourceCode;
 	return true;
 }
 
@@ -914,13 +914,13 @@ void doDefines (char * fn, stringArray * & strings, stringArray * & fileHandles)
 						if (! trimEnd (bits->next->string, '"')) addComment (ERRORTYPE_PROJECTERROR, "Definition starts with \", but doesn't end with it! Sorry, currently support for complex constants is very limited", bits->next->string, fn, 0);
 						char * newTarget = new char[30];
 						sprintf (newTarget, "_string%i", findOrAdd (strings, bits->next->string, false));
-						delete bits->next->string;
+						delete [] bits->next->string;
 						bits->next->string = newTarget;
 					} else if (trimStart (bits->next->string, '"')) {
 						if (! trimEnd (bits->next->string, '\'')) addComment (ERRORTYPE_PROJECTERROR, "Definition starts with ', but doesn't end with it! Sorry, currently support for complex constants is very limited", bits->next->string, fn, 0);
 						char * newTarget = new char[30];
 						sprintf (newTarget, "_file%i", findOrAdd (fileHandles, bits->next->string, false));
-						delete bits->next->string;
+						delete [] bits->next->string;
 						bits->next->string = newTarget;
 					}
 					
@@ -936,7 +936,7 @@ void doDefines (char * fn, stringArray * & strings, stringArray * & fileHandles)
 				destroyAll (bits);
 			}
 			destroyAll (sa);
-			delete t;
+			delete [] t;
 		}
 		fclose (fp);
 	} else {
@@ -998,7 +998,7 @@ bool outdoorSub (char * code, const char * fileName, unsigned int fileLine) {
 		destroyAll (getSpecial);
 		return true;
 	}
-	delete functionName;
+	delete [] functionName;
 	return false;
 }
 

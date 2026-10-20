@@ -1,4 +1,4 @@
-For macOS and Windows, there are two kinds of downloads. **OpenSLUDGE** contains the engine alone, with which you can play any SLUDGE game. **Out Of Order** contains the engine together with Out Of Order, a freeware adventure game made with SLUDGE.
+For macOS and Windows, there are three kinds of downloads. **OpenSLUDGE** contains the engine alone, with which you can play any SLUDGE game. **Out Of Order** contains the engine together with Out Of Order, a freeware adventure game made with SLUDGE. **OpenSLUDGE Dev Kit** contains the tools with which you make SLUDGE games, and the engine to run them with.
 
 | Download | Platform |
 |---|---|
@@ -7,11 +7,21 @@ For macOS and Windows, there are two kinds of downloads. **OpenSLUDGE** contains
 | `OutOfOrder-…-macOS-intel.zip` | Macs with Intel, from macOS 10.13 on |
 | `OutOfOrder-…-windows-x64.zip` | 64-bit Windows |
 | `OutOfOrder-…-windows-x86.zip` | 32-bit and 64-bit Windows, from Windows XP on, with OpenGL 2.0 graphics |
-| `OpenSLUDGE-…-*.zip` | The same platforms, with the engine alone |
+| `OpenSLUDGE-…-macOS-universal.zip` and the others | The same platforms, with the engine alone |
+| `OpenSLUDGE-DevKit-…-macOS-apple-silicon.zip` | The Dev Kit, for Macs with Apple Silicon, from macOS 15 on |
+| `OpenSLUDGE-DevKit-…-windows-x64.zip` | The Dev Kit, for 64-bit Windows, from Windows 10 on |
 
 If you are not sure which Mac download to take, take the universal one.
 
 Unzip the download and open the app. If macOS does not open it, Control-click the app and choose Open, or click "Open Anyway" in System Settings, under Privacy & Security. If Windows SmartScreen says that it protected your PC, click "More info" and then "Run anyway".
+
+In the Dev Kit, open SLUDGE Project Manager (on Windows, `sludge-projectmanager.exe`) to create or open a project, compile it and run the game. The Dev Kit for macOS is a folder of apps, one for each tool. To let macOS open all of them at once, run `xattr -dr com.apple.quarantine "OpenSLUDGE Dev Kit"` in the Terminal, in the folder that contains the Dev Kit. On Linux, build the Dev Kit from the source code, as INSTALL explains.
+
+## The Dev Kit
+
+- On Linux and Windows, the Dev Kit now uses GTK 3 instead of GTK 2, and there is a Dev Kit for macOS again, also with GTK 3. For the views of the floor maker, the z-buffer maker and the sprite bank editor, you need graphics with OpenGL 3.2.
+- There are downloads of the Dev Kit for 64-bit Windows and for Macs with Apple Silicon. The engine is in them, so you can run your game from the project manager without installing anything else.
+- We fixed several memory errors in the compiler.
 
 ## Changes in the engine
 

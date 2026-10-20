@@ -65,7 +65,7 @@ int getFileType (const char * filename) {
 					strcmp (compareMe, ".png") == 0) {
 			reply = FILETYPE_RAW;
 		}
-		delete compareMe;
+		delete [] compareMe;
 	}
 
 	return reply;

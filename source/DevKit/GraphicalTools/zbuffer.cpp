@@ -57,7 +57,7 @@ bool loadZBufferFromTGA (const char * fileName, spriteBank *loadhere) {
 						if (n) cutoff[n] = t2;
 						
 					} else {
-						delete data;
+						delete [] data;
 						errorBox ("Error reading TGA file", "Too many colours. Max 16 are allowed for making z-buffers. Each separate colour will become a z-buffer. If you need more, use sprites instead.");						
 						return false;
 					}
@@ -72,7 +72,7 @@ bool loadZBufferFromTGA (const char * fileName, spriteBank *loadhere) {
 	fclose (fp);
 	
 	if (numPanels<2) {
-		delete data;
+		delete [] data;
 		errorBox ("Error reading TGA file", "Can't find any z-buffers in the file.");						
 		return false;
 	}

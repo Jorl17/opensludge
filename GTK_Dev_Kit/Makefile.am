@@ -61,6 +61,16 @@ sludge_spritebankeditor_SOURCES = \
 	../source/CommonCode/utf8.cpp ../source/CommonCode/utf8.h \
 	../source/CommonCode/version.h
 
+# The OpenGL view of the editors, see EditorView.h.
+if COND_MACOS
+EDITOR_VIEW = EditorView.h OffscreenView.cpp
+else
+EDITOR_VIEW = EditorView.h GLAreaView.cpp
+endif
+sludge_floormaker_SOURCES += $(EDITOR_VIEW)
+sludge_zbuffermaker_SOURCES += $(EDITOR_VIEW)
+sludge_spritebankeditor_SOURCES += $(EDITOR_VIEW)
+
 sludge_translationeditor_SOURCES = \
 	TranslationEditorMain.cpp TranslationEditorMain.h \
 	SludgeTranslationEditor.cpp SludgeTranslationEditor.h \
@@ -158,6 +168,7 @@ dist_pkgdata_DATA = \
 	../images/compiler/compiler_16x16x32.png ../images/gameIcon/gameIcon_16x16x32.png
 
 EXTRA_DIST = \
+	ToolNames.h \
 	FloorMaker.rc ZBufferMaker.rc SpriteBankEditor.rc TranslationEditor.rc ProjectManager.rc \
 	../images/flags/flags.ico \
 	../images/floorIcon/floorIcon.ico ../images/zIcon/zIcon.ico \
@@ -186,6 +197,14 @@ else
 AM_CPPFLAGS += \
 	-std=c++0x \
 	-DDATADIR='"$(pkgdatadir)/"'
+
+if COND_MACOS
+# On macOS, we find the Resources folder of the app with CoreFoundation, and
+# create the OpenGL contexts of the editor views with CGL, which Apple marks
+# as deprecated.
+AM_CPPFLAGS += -DGL_SILENCE_DEPRECATION
+AM_LDFLAGS = -framework CoreFoundation -framework OpenGL
+endif
 
 sludge_floormaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
 sludge_zbuffermaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@

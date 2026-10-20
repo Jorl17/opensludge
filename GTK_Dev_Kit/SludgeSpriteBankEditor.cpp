@@ -37,10 +37,11 @@
 #include "Common.h"
 
 #include "SludgeSpriteBankEditor.h"
+#include "ToolNames.h"
 #include "draw2d.h"
 
 SludgeSpriteBankEditor::SludgeSpriteBankEditor()
- : SludgeGLApplication(joinTwoStrings(DATADIR, "SpriteBankEditor.glade"), "spriteIcon", "spritebankeditor")
+ : SludgeGLApplication(joinTwoStrings(getDataFolder(), "SpriteBankEditor.glade"), "spriteIcon", "spritebankeditor")
 {
 	if (!initSuccess) return;
 
@@ -104,7 +105,7 @@ gboolean SludgeSpriteBankEditor::init(gboolean calledFromConstructor)
 
 const char * SludgeSpriteBankEditor::getWindowTitle()
 {
-	return "SLUDGE Sprite Bank Editor";
+	return SPRITEBANKEDITOR_NAME;
 }
 
 const char * SludgeSpriteBankEditor::getFilterName()
@@ -209,9 +210,9 @@ void SludgeSpriteBankEditor::setupButtons()
 {
 	if (sprites.total < 65536) {
 		gtk_adjustment_set_upper(theSliderAdjustment, sprites.total);
-		char buf[5];
-		sprintf(buf, "%i", sprites.total);
-		gtk_label_set_text(theNumSpritesLabel, buf);
+		gchar *text = g_strdup_printf("%i", sprites.total);
+		gtk_label_set_text(theNumSpritesLabel, text);
+		g_free(text);
 		gtk_widget_set_sensitive(insertButton, TRUE);
 	} else {
 		gtk_adjustment_set_upper(theSliderAdjustment, 65535.);
@@ -251,6 +252,12 @@ void SludgeSpriteBankEditor::setupButtons()
 		deactivateZoomButtons();
 		hideStatusbar();
 	}
+
+	// GtkScale hides the slider while the bank has no sprites, and gives it
+	// a size only when GTK lays out the window again. On macOS, GTK can draw
+	// the window before it lays it out, and it warned that it drew the
+	// slider with a negative size. So we lay out the window right away.
+	gtk_container_check_resize(GTK_CONTAINER(theWindow));
 }
 
 void SludgeSpriteBankEditor::setupPalButtons()

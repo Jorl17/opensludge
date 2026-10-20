@@ -36,19 +36,19 @@ SludgeApplication::SludgeApplication(const char * gladeFileName, const char * ic
 	GdkPixbuf *pixbuf16, *pixbuf32, *pixbuf128, *pixbuf256;
 	GList *list = NULL;
 
-	sprintf(buf, "%s%s_16x16x32.png", DATADIR, iconName);
+	sprintf(buf, "%s%s_16x16x32.png", getDataFolder(), iconName);
 	pixbuf16 = gdk_pixbuf_new_from_file (buf, &err);
 
 	if (err == NULL) {
-		sprintf(buf, "%s%s_32x32x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_32x32x32.png", getDataFolder(), iconName);
 		pixbuf32 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 	if (err == NULL) {
-		sprintf(buf, "%s%s_128x128x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_128x128x32.png", getDataFolder(), iconName);
 		pixbuf128 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 	if (err == NULL) {
-		sprintf(buf, "%s%s_256x256x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_256x256x32.png", getDataFolder(), iconName);
 		pixbuf256 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 

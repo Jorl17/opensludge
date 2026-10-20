@@ -12,7 +12,7 @@ bool trimStart (char * & thisString, char trimChar) {
 	if (thisString[0] == trimChar) {
 		newString = new char[strlen (thisString)];
 		strcpy (newString, thisString + 1);
-		delete thisString;
+		delete [] thisString;
 		thisString = newString;
 		return true;
 	}
@@ -106,7 +106,7 @@ bool destroyFirst (stringArray * & theArray) {
 	stringArray * killMe = theArray;
 	if (theArray) {
 		theArray = theArray -> next;
-		delete killMe -> string;
+		delete [] killMe -> string;
 		delete killMe;
 	}
 

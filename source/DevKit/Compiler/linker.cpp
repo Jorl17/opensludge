@@ -183,8 +183,8 @@ bool runLinker (FILE * mainFile, FILE * indexFile, int functionNum, stringArray 
 				default:
 				return addComment (ERRORTYPE_INTERNALERROR, "Shouldn't have to resolve parameter for this command", sludgeText[b], theOriginalFilename, 0);
 			}
-			delete grabbedText;
-			delete bigName;
+			delete [] grabbedText;
+			delete [] bigName;
 			break;
 
 			default:
@@ -223,7 +223,7 @@ bool runLinker (FILE * mainFile, FILE * indexFile, int functionNum, stringArray 
 			}
 		}
 		if (originalName) {
-			delete originalName;
+			delete [] originalName;
 			originalName = NULL;
 		}
 	}
@@ -238,15 +238,15 @@ bool runLinker (FILE * mainFile, FILE * indexFile, int functionNum, stringArray 
 			stringArray * thisFunc = returnArray(functionNames, i);
 
 			addCommentWithLine (ERRORTYPE_PROJECTWARNING, buff, theOriginalFilename, thisFunc->line);
-			delete buff;
+			delete [] buff;
 		}
-		delete localName;
+		delete [] localName;
 	}
 
-	delete localsUsed;
-	delete classNameDot;
-	delete functionName;
-	delete theOriginalFilename;
+	delete [] localsUsed;
+	delete [] classNameDot;
+	delete [] functionName;
+	delete [] theOriginalFilename;
 	if (debugMe) fclose (debugFile);
 	fclose (readObj);
 

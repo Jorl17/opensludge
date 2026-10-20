@@ -40,9 +40,10 @@
 #include "Common.h"
 
 #include "SludgeFloorMaker.h"
+#include "ToolNames.h"
 
 SludgeFloorMaker::SludgeFloorMaker()
- : SludgeGLApplication(joinTwoStrings(DATADIR, "FloorMaker.glade"), "floorIcon", "floormaker")
+ : SludgeGLApplication(joinTwoStrings(getDataFolder(), "FloorMaker.glade"), "floorIcon", "floormaker")
 {
 	if (!initSuccess) return;
 	init(TRUE);
@@ -85,7 +86,7 @@ gboolean SludgeFloorMaker::init(gboolean calledFromConstructor)
 
 const char * SludgeFloorMaker::getWindowTitle()
 {
-	return "SLUDGE Floor Maker";
+	return FLOORMAKER_NAME;
 }
 
 const char * SludgeFloorMaker::getFilterName()

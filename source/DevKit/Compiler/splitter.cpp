@@ -106,10 +106,10 @@ stringArray * splitString (const char * inString, const char findCharIn, const s
 					
 					char * errStr = new char [a-a1+1];
 					memcpy(errStr, inString+a1, a-a1);
-					errStr[a-a1+1] = 0;
+					errStr[a-a1] = 0;
 					addComment (ERRORTYPE_PROJECTERROR, "Unexpected }, ] or ) in", errStr, 
 								(newStringArray)?newStringArray->string : NULL, lineNum);
-					delete errStr;
+					delete [] errStr;
 					destroyAll (newStringArray);
 					return NULL;
 				} else {

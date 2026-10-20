@@ -27,7 +27,7 @@ void clearFileList(char **resourceList, int *numResources)
 {
 	int i = 0;
 	while (i<*numResources) {
-		delete resourceList[i];
+		delete [] resourceList[i];
 		resourceList[i] = NULL;
 		i++;
 	}
@@ -49,7 +49,7 @@ void addFileToList (char * file, char **resourceList, int *numResources)
 void removeFileFromList (int index, char **fileList, int *numFiles)
 {
 	if (index>=*numFiles) return;
-	delete fileList[index];
+	delete [] fileList[index];
 	int i = index + 1;
 	while (i < *numFiles) {
 		fileList[i-1] = fileList[i];
@@ -197,10 +197,10 @@ bool loadProject (const char * filename, char **fileList, int *numFiles) {
 		readLine = readText (fp);
 		if (readLine == NULL) break;
 		if (strcmp (readLine, "[FILES]") == 0) break;
-		delete readLine;
+		delete [] readLine;
 	}
 
-	if (readLine) delete readLine;
+	if (readLine) delete [] readLine;
 
 	clearFileList(fileList, numFiles);
 	for (;;) {
@@ -208,7 +208,7 @@ bool loadProject (const char * filename, char **fileList, int *numFiles) {
 		if (readLine == NULL) break;
 		fixPath (readLine, true);
 		addFileToList (readLine, fileList, numFiles);
-		delete readLine;
+		delete [] readLine;
 	}
 
 	fclose (fp);
@@ -276,12 +276,12 @@ void addFileToProject (const char * wholeName, char * path, char **fileList, int
 		while (path[a]) {
 			if (path[a] == '/') {
 				temp = joinStrings ("../", newName);
-				delete newName;
+				delete [] newName;
 				newName = temp;
 			}
 			a ++;
 		}
 	}
 	addFileToList (newName, fileList, numFiles);
-	delete newName;
+	delete [] newName;
 }
