@@ -19,6 +19,7 @@
  */
 
 #include "SludgeApplication.h"
+#include "EditorView.h"
 
 class SludgeGLApplication : public SludgeApplication {
 
@@ -30,6 +31,7 @@ private:
 	GtkWidget *statusbarWidget;
 	GtkLabel *cursorxLabel, *cursoryLabel, *picwLabel, *pichLabel, *zmulLabel;
 	GMutex theRender_mutex;
+	EditorView *view;
 
 protected:
 	gboolean glInitialized;
@@ -70,7 +72,7 @@ public:
 	~SludgeGLApplication();
 	// Callbacks:
 	void on_drawingarea1_realize(GtkWidget *theWidget);
-	gboolean on_drawingarea1_render(GtkWidget *theWidget, GdkGLContext *context);
+	void renderView();
 	gboolean render_timer_event(gpointer theUser_data);
 	gboolean on_drawingarea1_scroll_event(GtkWidget *theWidget, GdkEventScroll *theEvent);
 	gboolean on_drawingarea1_button_press_event(GtkWidget *theWidget, GdkEventButton *theEvent);

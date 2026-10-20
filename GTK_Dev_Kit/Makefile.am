@@ -61,6 +61,12 @@ sludge_spritebankeditor_SOURCES = \
 	../source/CommonCode/utf8.cpp ../source/CommonCode/utf8.h \
 	../source/CommonCode/version.h
 
+# The OpenGL view of the editors, see EditorView.h.
+EDITOR_VIEW = EditorView.h GLAreaView.cpp
+sludge_floormaker_SOURCES += $(EDITOR_VIEW)
+sludge_zbuffermaker_SOURCES += $(EDITOR_VIEW)
+sludge_spritebankeditor_SOURCES += $(EDITOR_VIEW)
+
 sludge_translationeditor_SOURCES = \
 	TranslationEditorMain.cpp TranslationEditorMain.h \
 	SludgeTranslationEditor.cpp SludgeTranslationEditor.h \
