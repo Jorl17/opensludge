@@ -47,7 +47,7 @@
 extern char * gameFile;
 
 SludgeProjectManager::SludgeProjectManager()
- : SludgeApplication(joinTwoStrings(DATADIR, "ProjectManager.glade"), "ProjIcon", "projectmanager")
+ : SludgeApplication(joinTwoStrings(getDataFolder(), "ProjectManager.glade"), "ProjIcon", "projectmanager")
 {
 	if (!initSuccess) return;
 

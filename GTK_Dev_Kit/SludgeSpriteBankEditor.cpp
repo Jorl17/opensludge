@@ -40,7 +40,7 @@
 #include "draw2d.h"
 
 SludgeSpriteBankEditor::SludgeSpriteBankEditor()
- : SludgeGLApplication(joinTwoStrings(DATADIR, "SpriteBankEditor.glade"), "spriteIcon", "spritebankeditor")
+ : SludgeGLApplication(joinTwoStrings(getDataFolder(), "SpriteBankEditor.glade"), "spriteIcon", "spritebankeditor")
 {
 	if (!initSuccess) return;
 

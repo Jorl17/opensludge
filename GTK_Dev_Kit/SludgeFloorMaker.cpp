@@ -42,7 +42,7 @@
 #include "SludgeFloorMaker.h"
 
 SludgeFloorMaker::SludgeFloorMaker()
- : SludgeGLApplication(joinTwoStrings(DATADIR, "FloorMaker.glade"), "floorIcon", "floormaker")
+ : SludgeGLApplication(joinTwoStrings(getDataFolder(), "FloorMaker.glade"), "floorIcon", "floormaker")
 {
 	if (!initSuccess) return;
 	init(TRUE);

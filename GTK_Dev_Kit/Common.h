@@ -35,7 +35,9 @@ void setFileChooserFilters(GtkFileChooser *theFileChooser, gboolean png, gboolea
 char * joinTwoStrings (const char * a, const char * b);
 bool fileExists(char * file);
 void flipBackslashes(char **string);
-void winChangeToProgramDir(const char *programFullPath);
+// Find the files that we install with the tools. Call it before gtk_init.
+void setUpProgramFiles (const char * programFullPath);
+const char * getDataFolder ();
 char * getSettingsFilePath (const char * fileName);
 void replaceInvalidCharacters(char *string, int *retval);
 int sh_cmd (char * path, const char * cmd, char * args);

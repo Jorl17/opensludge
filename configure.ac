@@ -43,6 +43,13 @@ if test x"$WIN32" = xyes; then
   AC_CHECK_TOOL([WINDRES], [windres])
 fi
 
+# Are we building for macOS?
+case "${host}" in
+        *darwin*) MACOS="yes" ;;
+        *) MACOS="no" ;;
+esac
+AM_CONDITIONAL([COND_MACOS], test x"$MACOS" = xyes)
+
 # Checks for libraries.
 if test "x$enable_devkit" = xyes; then
   PKG_CHECK_MODULES([EPOXY], [epoxy])

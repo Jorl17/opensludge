@@ -187,6 +187,11 @@ AM_CPPFLAGS += \
 	-std=c++0x \
 	-DDATADIR='"$(pkgdatadir)/"'
 
+if COND_MACOS
+# On macOS, we find the Resources folder of the app with CoreFoundation.
+AM_LDFLAGS = -framework CoreFoundation
+endif
+
 sludge_floormaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
 sludge_zbuffermaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
 sludge_spritebankeditor_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@

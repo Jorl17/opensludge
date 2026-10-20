@@ -40,7 +40,7 @@
 #include "TranslationEditorMain.h"
 
 SludgeTranslationEditor::SludgeTranslationEditor()
- : SludgeApplication(joinTwoStrings(DATADIR, "TranslationEditor.glade"), "flags", "translationeditor")
+ : SludgeApplication(joinTwoStrings(getDataFolder(), "TranslationEditor.glade"), "flags", "translationeditor")
 {
 	if (!initSuccess) return;
 

@@ -39,7 +39,7 @@
 #include "SludgeZBufferMaker.h"
 
 SludgeZBufferMaker::SludgeZBufferMaker()
- : SludgeGLApplication(joinTwoStrings(DATADIR, "ZBufferMaker.glade"), "zIcon", "zbuffermaker")
+ : SludgeGLApplication(joinTwoStrings(getDataFolder(), "ZBufferMaker.glade"), "zIcon", "zbuffermaker")
 {
 	if (!initSuccess) return;
 

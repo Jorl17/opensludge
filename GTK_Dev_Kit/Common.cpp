@@ -25,6 +25,10 @@
 #include <glib.h>
 #include <glib/gstdio.h>
 
+#if defined(__APPLE__)
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #include "Common.h"
 #include "interface.h"
 
@@ -166,9 +170,41 @@ char * getSettingsFilePath (const char * fileName)
 	return path;
 }
 
-void winChangeToProgramDir(const char *programFullPath)
+// The folder with the .glade files and the icons of the tools, with a slash
+// at the end.
+static const char * dataFolder = DATADIR;
+
+const char * getDataFolder ()
 {
-#ifdef __WIN32
+	return dataFolder;
+}
+
+#if defined(__APPLE__)
+// Return the path of the Resources folder of the app that we run in, or NULL
+// when we don't run in an app, for example after make install. Free it with
+// g_free.
+static gchar * getAppResourcesFolder ()
+{
+	CFBundleRef bundle = CFBundleGetMainBundle ();
+	// Outside an app, the main bundle is the folder of the program, and it has
+	// no identifier.
+	if (! bundle || ! CFBundleGetIdentifier (bundle)) return NULL;
+	CFURLRef url = CFBundleCopyResourcesDirectoryURL (bundle);
+	if (! url) return NULL;
+	CFURLRef absoluteUrl = CFURLCopyAbsoluteURL (url);
+	char path[PATH_MAX];
+	Boolean found = CFURLGetFileSystemRepresentation (absoluteUrl, true, (UInt8 *) path, sizeof (path));
+	CFRelease (absoluteUrl);
+	CFRelease (url);
+	return found ? g_strdup (path) : NULL;
+}
+#endif
+
+void setUpProgramFiles (const char * programFullPath)
+{
+#if defined(__WIN32)
+	// DATADIR is the resources folder next to the programs, relative to the
+	// working folder, so we change to the folder of the program.
 	char programPath[1000];
 	int lastSlash = 0;
 	sprintf(programPath, "%s", programFullPath);
@@ -180,6 +216,24 @@ void winChangeToProgramDir(const char *programFullPath)
 	}
 	programPath[lastSlash + 1] = NULL;
 	g_chdir(programPath);
+#elif defined(__APPLE__)
+	// In an app, the data of the tools and the files that GTK loads at run
+	// time, such as the icons and the image loaders, are in the Resources
+	// folder.
+	gchar * resources = getAppResourcesFolder ();
+	if (! resources) return;
+	dataFolder = g_strconcat (resources, "/", NULL);
+	gchar * share = g_build_filename (resources, "share", NULL);
+	gchar * loaders = g_build_filename (resources, "lib", "gdk-pixbuf-2.0", "2.10.0", "loaders.cache", NULL);
+	g_setenv ("XDG_DATA_DIRS", share, TRUE);
+	g_setenv ("GDK_PIXBUF_MODULE_FILE", loaders, TRUE);
+	g_free (loaders);
+	g_free (share);
+	g_free (resources);
+#elif defined(__unix__)
+	// DATADIR is the folder where make install puts the data.
+#else
+#error "No folder for the data of the tools on this platform"
 #endif
 }
 
