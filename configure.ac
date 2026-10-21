@@ -56,6 +56,10 @@ if test "x$enable_devkit" = xyes; then
   PKG_CHECK_MODULES([GTK], [gtk+-3.0 >= 3.20 gthread-2.0 gobject-2.0 gmodule-2.0])
   PKG_CHECK_MODULES([GLIB], [glib-2.0])
   PKG_CHECK_MODULES([LIBPNG], [libpng])
+  if test x"$MACOS" = xyes; then
+    # On macOS, we put the menus of the tools into the macOS menu bar.
+    PKG_CHECK_MODULES([MAC_INTEGRATION], [gtk-mac-integration-gtk3])
+  fi
 fi
 
 # Checks for header files.

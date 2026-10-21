@@ -101,8 +101,9 @@ macOS
 =====
 
    We build the Dev Kit for Macs with Apple Silicon, with GTK 3 from
-Homebrew. Install autoconf, automake, pkgconf, gtk+3, libepoxy, libpng,
-librsvg, adwaita-icon-theme and dylibbundler with brew. Then:
+Homebrew. Install autoconf, automake, pkgconf, gtk+3, gtk-mac-integration,
+libepoxy, libpng, librsvg, adwaita-icon-theme and dylibbundler with brew.
+Then:
 
      export MACOSX_DEPLOYMENT_TARGET=15.0
      ./autogen.sh

@@ -24,6 +24,9 @@
 #include "SludgeApplication.h"
 #include "Common.h"
 #include "version.h"
+#if defined(__APPLE__)
+#include "MacMenuBar.h"
+#endif
 
 SludgeApplication::SludgeApplication(const char * gladeFileName, const char * iconName, const char * configFile)
 {
@@ -88,6 +91,10 @@ SludgeApplication::SludgeApplication(const char * gladeFileName, const char * ic
 		initSuccess = FALSE;
 		return;
 	}
+
+#if defined(__APPLE__)
+	useMacMenuBar (theXml);
+#endif
 
 	gchar * folderFile = getSettingsFilePath (configfile);
 	FILE * fp = g_fopen (folderFile, "r");
