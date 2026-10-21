@@ -116,6 +116,16 @@ sludge_projectmanager_SOURCES = \
 	../source/CommonCode/functionlist.h \
 	../source/CommonCode/version.h
 
+# On macOS, we put the menus of the tools into the macOS menu bar, see
+# MacMenuBar.h.
+if COND_MACOS
+sludge_floormaker_SOURCES += MacMenuBar.cpp MacMenuBar.h
+sludge_zbuffermaker_SOURCES += MacMenuBar.cpp MacMenuBar.h
+sludge_spritebankeditor_SOURCES += MacMenuBar.cpp MacMenuBar.h
+sludge_translationeditor_SOURCES += MacMenuBar.cpp MacMenuBar.h
+sludge_projectmanager_SOURCES += MacMenuBar.cpp MacMenuBar.h
+endif
+
 sludge_compiler_SOURCES = \
 	CompilerMain.cpp ../source/DevKit/Common/interface.h \
 	../source/DevKit/ProjectManager/project.cpp ../source/DevKit/ProjectManager/project.hpp \
@@ -202,15 +212,16 @@ if COND_MACOS
 # On macOS, we find the Resources folder of the app with CoreFoundation, and
 # create the OpenGL contexts of the editor views with CGL, which Apple marks
 # as deprecated.
-AM_CPPFLAGS += -DGL_SILENCE_DEPRECATION
+AM_CPPFLAGS += -DGL_SILENCE_DEPRECATION @MAC_INTEGRATION_CFLAGS@
 AM_LDFLAGS = -framework CoreFoundation -framework OpenGL
 endif
 
-sludge_floormaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_zbuffermaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_spritebankeditor_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@
-sludge_translationeditor_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@
-sludge_projectmanager_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@
+# MAC_INTEGRATION_LIBS is empty on the other systems.
+sludge_floormaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@ @MAC_INTEGRATION_LIBS@
+sludge_zbuffermaker_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@ @MAC_INTEGRATION_LIBS@
+sludge_spritebankeditor_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @EPOXY_LIBS@ @MAC_INTEGRATION_LIBS@
+sludge_translationeditor_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @MAC_INTEGRATION_LIBS@
+sludge_projectmanager_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @MAC_INTEGRATION_LIBS@
 endif
 
 sludge_compiler_LDADD = @GLIB_LIBS@ @LIBPNG_LIBS@

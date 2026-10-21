@@ -484,8 +484,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install autoconf automake pkgconf gtk+3 libepoxy libpng librsvg \
-            adwaita-icon-theme dylibbundler
+          brew install autoconf automake pkgconf gtk+3 gtk-mac-integration libepoxy libpng \
+            librsvg adwaita-icon-theme dylibbundler
 
       - name: Build
         run: |
@@ -596,6 +596,21 @@ jobs:
             pid=$!
             sleep 10
             screencapture -x "$GITHUB_WORKSPACE/screenshots/$executable.png" || true
+            # The menus of the tool have to be in the macOS menu bar, and
+            # About in the app menu.
+            process="first process whose unix id is $pid"
+            menus=$(osascript -e "tell application \"System Events\" to get name of every menu bar item of menu bar 1 of ($process)" 2>&1 || true)
+            app_menu=$(osascript -e "tell application \"System Events\" to get name of every menu item of menu 1 of menu bar item 2 of menu bar 1 of ($process)" 2>&1 || true)
+            echo "Menu bar of $app: $menus"
+            echo "App menu of $app: $app_menu"
+            case "$menus" in
+              *File*) ;;
+              *) echo "::error::The menus of $app are not in the macOS menu bar"; failed=yes ;;
+            esac
+            case "$app_menu" in
+              *"About $app"*) ;;
+              *) echo "::error::The app menu of $app has no About item"; failed=yes ;;
+            esac
             if kill -0 $pid 2>/dev/null; then
               kill $pid
             else
