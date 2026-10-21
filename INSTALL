@@ -1,107 +1,227 @@
-Installation Instructions
-*************************
+Building the SLUDGE engine
+**************************
 
-   Copyright (C) 1994-1996, 1999-2002, 2004-2017, 2020-2021 Free
-Software Foundation, Inc.
+   We build the engine with CMake 3.24 or later, on Linux, macOS and
+Windows:
 
-   Copying and distribution of this file, with or without modification,
-are permitted in any medium without royalty provided the copyright
-notice and this notice are preserved.  This file is offered as-is,
-without warranty of any kind.
+     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+     cmake --build build
+
+   The engine uses SDL 3, libogg, libvorbis, libpng, DUMB and, for movies,
+libvpx. By default, CMake uses the versions installed on the system and
+builds from source those that it does not find. On Debian and Ubuntu, the
+packages are libvorbis-dev, libpng-dev, libdumb1-dev and libvpx-dev, and
+libsdl3-dev where it exists.
+
+   You can change the build with these options.
+
+     -DSLUDGE_BUNDLED_DEPS=ON   Build every library from source and link it
+                                statically, for an executable that runs on
+                                its own.
+     -DSLUDGE_MOVIES=OFF        Leave out movie support and libvpx.
+     -DSLUDGE_GLES2=ON          Draw with OpenGL ES 2.0 instead of OpenGL.
+     -DSLUDGE_DEVICE=<device>   Build for the OpenPandora, the Raspberry Pi
+                                or an ODROID, with OpenPandora, RaspberryPi
+                                or ODROID. We then draw with OpenGL ES 2.0,
+                                and on the OpenPandora, we always show the
+                                game in full screen.
+     -DSLUDGE_TESTS=OFF         Leave out the tests. We build them by
+                                default, and you run them with
+                                `ctest --test-dir build'.
+
+   On macOS, build each architecture separately, for example with
+-DCMAKE_OSX_ARCHITECTURES=x86_64, and combine the executables with lipo.
+With packaging/macos/make-app.sh, we make an application bundle around
+the engine.
+
+   On Windows, we build with MSYS2 and MinGW. For 32-bit Windows, from
+Windows XP on, we cross-compile on Linux with
+-DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw-i686.cmake and
+-DSLUDGE_BUNDLED_DEPS=ON. For that, the MinGW-w64 compilers of the win32
+thread model and nasm are required (g++-mingw-w64-i686-win32 and nasm on
+Debian and Ubuntu).
+
+   Run the engine with the game data file as its argument, for example
+`build/sludge-engine gamedata.slg'. Run `build/sludge-engine --help' for
+the options.
+
+Making the release packages
+***************************
+
+   In .github/workflows/build.yml, we build and test the engine on Linux,
+macOS and Windows. For a version tag, such as 2.3.0, we publish a release
+with two kinds of packages for macOS and Windows: OpenSLUDGE, the engine
+alone, and Out Of Order, the engine with the game Out Of Order. We make
+the packages with the scripts in the packaging folder.
+
+     get-out-of-order.sh        Download the data file of Out Of Order from
+                                the Ubuntu archive and check its hash.
+     windows/make-zips.sh       Make the zips of OpenSLUDGE and of Out Of
+                                Order for Windows.
+     macos/make-app.sh          Make a macOS application bundle, with or
+                                without a game, or for a tool of the Dev
+                                Kit.
+     macos/sign-app.sh          Sign a macOS application bundle.
+     macos/set-up-signing.sh    Import the certificate to sign the apps
+                                with into a keychain.
+
+   Out Of Order is freeware, and anyone may give it away together with its
+readme and licence. We change nothing in the game, and only add a
+controller mapping for it, packaging/out-of-order/controller.ini. To
+publish only OpenSLUDGE, leave out the Out Of Order zips and apps in the
+workflow. In the tests of the workflow, we play the opening of Out Of
+Order, so keep get-out-of-order.sh for those.
+
+Building the SLUDGE Development Kit
+***********************************
+
+Windows
+=======
+
+   We build the Dev Kit for 64-bit Windows in MSYS2, in its UCRT64
+environment, with these packages: mingw-w64-ucrt-x86_64-toolchain,
+mingw-w64-ucrt-x86_64-gtk3, mingw-w64-ucrt-x86_64-libepoxy,
+mingw-w64-ucrt-x86_64-libpng, mingw-w64-ucrt-x86_64-librsvg,
+mingw-w64-ucrt-x86_64-adwaita-icon-theme, autoconf, automake, make and
+zip. Then, in the UCRT64 shell:
+
+     ./autogen.sh
+     ./configure --prefix=/
+     make
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 \
+       <OpenSLUDGE.exe> <version> x64 dist
+
+   With make-devkit-zip.sh, we put the tools, the engine and the parts of
+GTK that the tools need into one folder, and zip it. In the workflow, we
+make this zip in the DevKit (Windows x64) job, with the engine from the
+Windows (x64) job, and we publish it with the release.
+
+macOS
+=====
+
+   We build the Dev Kit for Macs with Apple Silicon, with GTK 3 from
+Homebrew. Install autoconf, automake, pkgconf, gtk+3, gtk-mac-integration,
+libepoxy, libpng, librsvg, adwaita-icon-theme and dylibbundler with brew.
+Then:
+
+     export MACOSX_DEPLOYMENT_TARGET=15.0
+     ./autogen.sh
+     ./configure --prefix=/
+     make
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/macos/make-app.sh <sludge-engine> OpenSLUDGE.app OpenSLUDGE \
+       org.opensludge.engine images/Sludge.icns 11.0
+     packaging/macos/sign-app.sh OpenSLUDGE.app
+     packaging/macos/make-devkit.sh devkit-install "$(brew --prefix)" \
+       OpenSLUDGE.app 15.0 dist
+
+   With make-devkit.sh, we make an app for each tool, with the parts of GTK
+that the tool needs, and put the apps and OpenSLUDGE.app into the folder
+"dist/OpenSLUDGE Dev Kit". Homebrew installs libraries for the version of
+macOS that it runs on, so the apps run only on that version of macOS or
+later, and we build the tools for the same version with
+MACOSX_DEPLOYMENT_TARGET. In the workflow, we make the Dev Kit in the
+DevKit (macOS Apple Silicon) job, on macOS 15, with the engine from the
+macOS (Apple Silicon) job, and we publish its zip with the release.
+
+Linux
+=====
+
+   Dependencies of the OpenSLUDGE Dev Kit are GTK 3 (>= 3.20), libepoxy
+and libpng. We draw the views of the floor maker, the z-buffer maker and
+the sprite bank editor with OpenGL 3.2.
+
+   On Debian and Ubuntu the corresponding packages are libgtk-3-dev,
+libepoxy-dev and libpng-dev.
+
+   Briefly, the shell commands `./autogen.sh; ./configure; make; make
+install' should configure, build, and install the Dev Kit. You can use
+the configure options --disable-devkit and/or --enable-doc to (de)select
+components. For the documentation only, run `./configure --disable-devkit
+--enable-doc'.
+
+   With `make check', we draw the views of the floor maker, the z-buffer
+maker and the sprite bank editor offscreen and compare them with the
+reference images in tests/devkit/references. For that, Mesa's EGL
+(libegl-mesa0 on Debian and Ubuntu) is required.
+
+   The following more-detailed instructions are generic and
+
+Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
+2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+
+   It is free documentation; the Free Software Foundation gives
+unlimited permission to copy, distribute and modify it.
 
 Basic Installation
 ==================
 
-   Briefly, the shell command './configure && make && make install'
-should configure, build, and install this package.  The following
-more-detailed instructions are generic; see the 'README' file for
-instructions specific to this package.  Some packages provide this
-'INSTALL' file but do not implement all of the features documented
-below.  The lack of an optional feature in a given package is not
-necessarily a bug.  More recommendations for GNU packages can be found
-in *note Makefile Conventions: (standards)Makefile Conventions.
-
-   The 'configure' shell script attempts to guess correct values for
+   The `configure' shell script attempts to guess correct values for
 various system-dependent variables used during compilation.  It uses
-those values to create a 'Makefile' in each directory of the package.
-It may also create one or more '.h' files containing system-dependent
-definitions.  Finally, it creates a shell script 'config.status' that
+those values to create a `Makefile' in each directory of the package.
+It may also create one or more `.h' files containing system-dependent
+definitions.  Finally, it creates a shell script `config.status' that
 you can run in the future to recreate the current configuration, and a
-file 'config.log' containing compiler output (useful mainly for
-debugging 'configure').
+file `config.log' containing compiler output (useful mainly for
+debugging `configure').
 
-   It can also use an optional file (typically called 'config.cache' and
-enabled with '--cache-file=config.cache' or simply '-C') that saves the
-results of its tests to speed up reconfiguring.  Caching is disabled by
-default to prevent problems with accidental use of stale cache files.
+   It can also use an optional file (typically called `config.cache'
+and enabled with `--cache-file=config.cache' or simply `-C') that saves
+the results of its tests to speed up reconfiguring.  Caching is
+disabled by default to prevent problems with accidental use of stale
+cache files.
 
    If you need to do unusual things to compile the package, please try
-to figure out how 'configure' could check whether to do them, and mail
-diffs or instructions to the address given in the 'README' so they can
+to figure out how `configure' could check whether to do them, and mail
+diffs or instructions to the address given in the `README' so they can
 be considered for the next release.  If you are using the cache, and at
-some point 'config.cache' contains results you don't want to keep, you
+some point `config.cache' contains results you don't want to keep, you
 may remove or edit it.
 
-   The file 'configure.ac' (or 'configure.in') is used to create
-'configure' by a program called 'autoconf'.  You need 'configure.ac' if
-you want to change it or regenerate 'configure' using a newer version of
-'autoconf'.
+   The file `configure.ac' (or `configure.in') is used to create
+`configure' by a program called `autoconf'.  You need `configure.ac' if
+you want to change it or regenerate `configure' using a newer version
+of `autoconf'.
 
-   The simplest way to compile this package is:
+The simplest way to compile this package is:
 
-  1. 'cd' to the directory containing the package's source code and type
-     './configure' to configure the package for your system.
+  1. `cd' to the directory containing the package's source code and type
+     `./configure' to configure the package for your system.
 
-     Running 'configure' might take a while.  While running, it prints
+     Running `configure' might take a while.  While running, it prints
      some messages telling which features it is checking for.
 
-  2. Type 'make' to compile the package.
+  2. Type `make' to compile the package.
 
-  3. Optionally, type 'make check' to run any self-tests that come with
-     the package, generally using the just-built uninstalled binaries.
+  3. Optionally, type `make check' to run any self-tests that come with
+     the package.
 
-  4. Type 'make install' to install the programs and any data files and
-     documentation.  When installing into a prefix owned by root, it is
-     recommended that the package be configured and built as a regular
-     user, and only the 'make install' phase executed with root
-     privileges.
+  4. Type `make install' to install the programs and any data files and
+     documentation.
 
-  5. Optionally, type 'make installcheck' to repeat any self-tests, but
-     this time using the binaries in their final installed location.
-     This target does not install anything.  Running this target as a
-     regular user, particularly if the prior 'make install' required
-     root privileges, verifies that the installation completed
-     correctly.
-
-  6. You can remove the program binaries and object files from the
-     source code directory by typing 'make clean'.  To also remove the
-     files that 'configure' created (so you can compile the package for
-     a different kind of computer), type 'make distclean'.  There is
-     also a 'make maintainer-clean' target, but that is intended mainly
+  5. You can remove the program binaries and object files from the
+     source code directory by typing `make clean'.  To also remove the
+     files that `configure' created (so you can compile the package for
+     a different kind of computer), type `make distclean'.  There is
+     also a `make maintainer-clean' target, but that is intended mainly
      for the package's developers.  If you use it, you may have to get
      all sorts of other programs in order to regenerate files that came
      with the distribution.
 
-  7. Often, you can also type 'make uninstall' to remove the installed
-     files again.  In practice, not all packages have tested that
-     uninstallation works correctly, even though it is required by the
-     GNU Coding Standards.
-
-  8. Some packages, particularly those that use Automake, provide 'make
-     distcheck', which can by used by developers to test that all other
-     targets like 'make install' and 'make uninstall' work correctly.
-     This target is generally not run by end users.
+  6. Often, you can also type `make uninstall' to remove the installed
+     files again.
 
 Compilers and Options
 =====================
 
    Some systems require unusual options for compilation or linking that
-the 'configure' script does not know about.  Run './configure --help'
+the `configure' script does not know about.  Run `./configure --help'
 for details on some of the pertinent environment variables.
 
-   You can give 'configure' initial values for configuration parameters
-by setting variables in the command line or in the environment.  Here is
-an example:
+   You can give `configure' initial values for configuration parameters
+by setting variables in the command line or in the environment.  Here
+is an example:
 
      ./configure CC=c99 CFLAGS=-g LIBS=-lposix
 
@@ -112,21 +232,20 @@ Compiling For Multiple Architectures
 
    You can compile the package for more than one kind of computer at the
 same time, by placing the object files for each architecture in their
-own directory.  To do this, you can use GNU 'make'.  'cd' to the
+own directory.  To do this, you can use GNU `make'.  `cd' to the
 directory where you want the object files and executables to go and run
-the 'configure' script.  'configure' automatically checks for the source
-code in the directory that 'configure' is in and in '..'.  This is known
-as a "VPATH" build.
+the `configure' script.  `configure' automatically checks for the
+source code in the directory that `configure' is in and in `..'.
 
-   With a non-GNU 'make', it is safer to compile the package for one
+   With a non-GNU `make', it is safer to compile the package for one
 architecture at a time in the source code directory.  After you have
-installed the package for one architecture, use 'make distclean' before
+installed the package for one architecture, use `make distclean' before
 reconfiguring for another architecture.
 
    On MacOS X 10.5 and later systems, you can create libraries and
 executables that work on multiple system types--known as "fat" or
-"universal" binaries--by specifying multiple '-arch' options to the
-compiler but only a single '-arch' option to the preprocessor.  Like
+"universal" binaries--by specifying multiple `-arch' options to the
+compiler but only a single `-arch' option to the preprocessor.  Like
 this:
 
      ./configure CC="gcc -arch i386 -arch x86_64 -arch ppc -arch ppc64" \
@@ -135,104 +254,61 @@ this:
 
    This is not guaranteed to produce working output in all cases, you
 may have to build one architecture at a time and combine the results
-using the 'lipo' tool if you have problems.
+using the `lipo' tool if you have problems.
 
 Installation Names
 ==================
 
-   By default, 'make install' installs the package's commands under
-'/usr/local/bin', include files under '/usr/local/include', etc.  You
-can specify an installation prefix other than '/usr/local' by giving
-'configure' the option '--prefix=PREFIX', where PREFIX must be an
-absolute file name.
+   By default, `make install' installs the package's commands under
+`/usr/local/bin', include files under `/usr/local/include', etc.  You
+can specify an installation prefix other than `/usr/local' by giving
+`configure' the option `--prefix=PREFIX'.
 
    You can specify separate installation prefixes for
 architecture-specific files and architecture-independent files.  If you
-pass the option '--exec-prefix=PREFIX' to 'configure', the package uses
+pass the option `--exec-prefix=PREFIX' to `configure', the package uses
 PREFIX as the prefix for installing programs and libraries.
 Documentation and other data files still use the regular prefix.
 
    In addition, if you use an unusual directory layout you can give
-options like '--bindir=DIR' to specify different values for particular
-kinds of files.  Run 'configure --help' for a list of the directories
-you can set and what kinds of files go in them.  In general, the default
-for these options is expressed in terms of '${prefix}', so that
-specifying just '--prefix' will affect all of the other directory
-specifications that were not explicitly provided.
+options like `--bindir=DIR' to specify different values for particular
+kinds of files.  Run `configure --help' for a list of the directories
+you can set and what kinds of files go in them.
 
-   The most portable way to affect installation locations is to pass the
-correct locations to 'configure'; however, many packages provide one or
-both of the following shortcuts of passing variable assignments to the
-'make install' command line to change installation locations without
-having to reconfigure or recompile.
-
-   The first method involves providing an override variable for each
-affected directory.  For example, 'make install
-prefix=/alternate/directory' will choose an alternate location for all
-directory configuration variables that were expressed in terms of
-'${prefix}'.  Any directories that were specified during 'configure',
-but not in terms of '${prefix}', must each be overridden at install time
-for the entire installation to be relocated.  The approach of makefile
-variable overrides for each directory variable is required by the GNU
-Coding Standards, and ideally causes no recompilation.  However, some
-platforms have known limitations with the semantics of shared libraries
-that end up requiring recompilation when using this method, particularly
-noticeable in packages that use GNU Libtool.
-
-   The second method involves providing the 'DESTDIR' variable.  For
-example, 'make install DESTDIR=/alternate/directory' will prepend
-'/alternate/directory' before all installation names.  The approach of
-'DESTDIR' overrides is not required by the GNU Coding Standards, and
-does not work on platforms that have drive letters.  On the other hand,
-it does better at avoiding recompilation issues, and works well even
-when some directory options were not specified in terms of '${prefix}'
-at 'configure' time.
+   If the package supports it, you can cause programs to be installed
+with an extra prefix or suffix on their names by giving `configure' the
+option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
 
 Optional Features
 =================
 
-   If the package supports it, you can cause programs to be installed
-with an extra prefix or suffix on their names by giving 'configure' the
-option '--program-prefix=PREFIX' or '--program-suffix=SUFFIX'.
-
-   Some packages pay attention to '--enable-FEATURE' options to
-'configure', where FEATURE indicates an optional part of the package.
-They may also pay attention to '--with-PACKAGE' options, where PACKAGE
-is something like 'gnu-as' or 'x' (for the X Window System).  The
-'README' should mention any '--enable-' and '--with-' options that the
+   Some packages pay attention to `--enable-FEATURE' options to
+`configure', where FEATURE indicates an optional part of the package.
+They may also pay attention to `--with-PACKAGE' options, where PACKAGE
+is something like `gnu-as' or `x' (for the X Window System).  The
+`README' should mention any `--enable-' and `--with-' options that the
 package recognizes.
 
-   For packages that use the X Window System, 'configure' can usually
+   For packages that use the X Window System, `configure' can usually
 find the X include and library files automatically, but if it doesn't,
-you can use the 'configure' options '--x-includes=DIR' and
-'--x-libraries=DIR' to specify their locations.
-
-   Some packages offer the ability to configure how verbose the
-execution of 'make' will be.  For these packages, running './configure
---enable-silent-rules' sets the default to minimal output, which can be
-overridden with 'make V=1'; while running './configure
---disable-silent-rules' sets the default to verbose, which can be
-overridden with 'make V=0'.
+you can use the `configure' options `--x-includes=DIR' and
+`--x-libraries=DIR' to specify their locations.
 
 Particular systems
 ==================
 
-   On HP-UX, the default C compiler is not ANSI C compatible.  If GNU CC
-is not installed, it is recommended to use the following options in
+   On HP-UX, the default C compiler is not ANSI C compatible.  If GNU
+CC is not installed, it is recommended to use the following options in
 order to use an ANSI C compiler:
 
      ./configure CC="cc -Ae -D_XOPEN_SOURCE=500"
 
 and if that doesn't work, install pre-built binaries of GCC for HP-UX.
 
-   HP-UX 'make' updates targets which have the same timestamps as their
-prerequisites, which makes it generally unusable when shipped generated
-files such as 'configure' are involved.  Use GNU 'make' instead.
-
    On OSF/1 a.k.a. Tru64, some versions of the default C compiler cannot
-parse its '<wchar.h>' header file.  The option '-nodtk' can be used as a
-workaround.  If GNU CC is not installed, it is therefore recommended to
-try
+parse its `<wchar.h>' header file.  The option `-nodtk' can be used as
+a workaround.  If GNU CC is not installed, it is therefore recommended
+to try
 
      ./configure CC="cc"
 
@@ -240,26 +316,26 @@ and if that doesn't work, try
 
      ./configure CC="cc -nodtk"
 
-   On Solaris, don't put '/usr/ucb' early in your 'PATH'.  This
+   On Solaris, don't put `/usr/ucb' early in your `PATH'.  This
 directory contains several dysfunctional programs; working variants of
-these programs are available in '/usr/bin'.  So, if you need '/usr/ucb'
-in your 'PATH', put it _after_ '/usr/bin'.
+these programs are available in `/usr/bin'.  So, if you need `/usr/ucb'
+in your `PATH', put it _after_ `/usr/bin'.
 
-   On Haiku, software installed for all users goes in '/boot/common',
-not '/usr/local'.  It is recommended to use the following options:
+   On Haiku, software installed for all users goes in `/boot/common',
+not `/usr/local'.  It is recommended to use the following options:
 
      ./configure --prefix=/boot/common
 
 Specifying the System Type
 ==========================
 
-   There may be some features 'configure' cannot figure out
+   There may be some features `configure' cannot figure out
 automatically, but needs to determine by the type of machine the package
 will run on.  Usually, assuming the package is built to be run on the
-_same_ architectures, 'configure' can figure that out, but if it prints
+_same_ architectures, `configure' can figure that out, but if it prints
 a message saying it cannot guess the machine type, give it the
-'--build=TYPE' option.  TYPE can either be a short name for the system
-type, such as 'sun4', or a canonical name which has the form:
+`--build=TYPE' option.  TYPE can either be a short name for the system
+type, such as `sun4', or a canonical name which has the form:
 
      CPU-COMPANY-SYSTEM
 
@@ -268,101 +344,101 @@ where SYSTEM can have one of these forms:
      OS
      KERNEL-OS
 
-   See the file 'config.sub' for the possible values of each field.  If
-'config.sub' isn't included in this package, then this package doesn't
+   See the file `config.sub' for the possible values of each field.  If
+`config.sub' isn't included in this package, then this package doesn't
 need to know the machine type.
 
    If you are _building_ compiler tools for cross-compiling, you should
-use the option '--target=TYPE' to select the type of system they will
+use the option `--target=TYPE' to select the type of system they will
 produce code for.
 
    If you want to _use_ a cross compiler, that generates code for a
 platform different from the build platform, you should specify the
 "host" platform (i.e., that on which the generated programs will
-eventually be run) with '--host=TYPE'.
+eventually be run) with `--host=TYPE'.
 
 Sharing Defaults
 ================
 
-   If you want to set default values for 'configure' scripts to share,
-you can create a site shell script called 'config.site' that gives
-default values for variables like 'CC', 'cache_file', and 'prefix'.
-'configure' looks for 'PREFIX/share/config.site' if it exists, then
-'PREFIX/etc/config.site' if it exists.  Or, you can set the
-'CONFIG_SITE' environment variable to the location of the site script.
-A warning: not all 'configure' scripts look for a site script.
+   If you want to set default values for `configure' scripts to share,
+you can create a site shell script called `config.site' that gives
+default values for variables like `CC', `cache_file', and `prefix'.
+`configure' looks for `PREFIX/share/config.site' if it exists, then
+`PREFIX/etc/config.site' if it exists.  Or, you can set the
+`CONFIG_SITE' environment variable to the location of the site script.
+A warning: not all `configure' scripts look for a site script.
 
 Defining Variables
 ==================
 
    Variables not defined in a site shell script can be set in the
-environment passed to 'configure'.  However, some packages may run
+environment passed to `configure'.  However, some packages may run
 configure again during the build, and the customized values of these
 variables may be lost.  In order to avoid this problem, you should set
-them in the 'configure' command line, using 'VAR=value'.  For example:
+them in the `configure' command line, using `VAR=value'.  For example:
 
      ./configure CC=/usr/local2/bin/gcc
 
-causes the specified 'gcc' to be used as the C compiler (unless it is
+causes the specified `gcc' to be used as the C compiler (unless it is
 overridden in the site shell script).
 
-Unfortunately, this technique does not work for 'CONFIG_SHELL' due to an
-Autoconf limitation.  Until the limitation is lifted, you can use this
-workaround:
+Unfortunately, this technique does not work for `CONFIG_SHELL' due to
+an Autoconf bug.  Until the bug is fixed you can use this workaround:
 
-     CONFIG_SHELL=/bin/bash ./configure CONFIG_SHELL=/bin/bash
+     CONFIG_SHELL=/bin/bash /bin/bash ./configure CONFIG_SHELL=/bin/bash
 
-'configure' Invocation
+`configure' Invocation
 ======================
 
-   'configure' recognizes the following options to control how it
+   `configure' recognizes the following options to control how it
 operates.
 
-'--help'
-'-h'
-     Print a summary of all of the options to 'configure', and exit.
+`--help'
+`-h'
+     Print a summary of all of the options to `configure', and exit.
 
-'--help=short'
-'--help=recursive'
+`--help=short'
+`--help=recursive'
      Print a summary of the options unique to this package's
-     'configure', and exit.  The 'short' variant lists options used only
-     in the top level, while the 'recursive' variant lists options also
-     present in any nested packages.
+     `configure', and exit.  The `short' variant lists options used
+     only in the top level, while the `recursive' variant lists options
+     also present in any nested packages.
 
-'--version'
-'-V'
-     Print the version of Autoconf used to generate the 'configure'
+`--version'
+`-V'
+     Print the version of Autoconf used to generate the `configure'
      script, and exit.
 
-'--cache-file=FILE'
+`--cache-file=FILE'
      Enable the cache: use and save the results of the tests in FILE,
-     traditionally 'config.cache'.  FILE defaults to '/dev/null' to
+     traditionally `config.cache'.  FILE defaults to `/dev/null' to
      disable caching.
 
-'--config-cache'
-'-C'
-     Alias for '--cache-file=config.cache'.
+`--config-cache'
+`-C'
+     Alias for `--cache-file=config.cache'.
 
-'--quiet'
-'--silent'
-'-q'
+`--quiet'
+`--silent'
+`-q'
      Do not print messages saying which checks are being made.  To
-     suppress all normal output, redirect it to '/dev/null' (any error
+     suppress all normal output, redirect it to `/dev/null' (any error
      messages will still be shown).
 
-'--srcdir=DIR'
+`--srcdir=DIR'
      Look for the package's source code in directory DIR.  Usually
-     'configure' can determine that directory automatically.
+     `configure' can determine that directory automatically.
 
-'--prefix=DIR'
-     Use DIR as the installation prefix.  *note Installation Names:: for
-     more details, including other options available for fine-tuning the
-     installation locations.
+`--prefix=DIR'
+     Use DIR as the installation prefix.  *Note Installation Names::
+     for more details, including other options available for fine-tuning
+     the installation locations.
 
-'--no-create'
-'-n'
+`--no-create'
+`-n'
      Run the configure checks, but stop before creating any output
      files.
 
-'configure' also accepts some other, not widely useful, options.  Run
-'configure --help' for more details.
+`configure' also accepts some other, not widely useful, options.  Run
+`configure --help' for more details.
+
