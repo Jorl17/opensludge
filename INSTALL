@@ -59,8 +59,11 @@ the packages with the scripts in the packaging folder.
      windows/make-zips.sh       Make the zips of OpenSLUDGE and of Out Of
                                 Order for Windows.
      macos/make-app.sh          Make a macOS application bundle, with or
-                                without a game.
+                                without a game, or for a tool of the Dev
+                                Kit.
      macos/sign-app.sh          Sign a macOS application bundle.
+     macos/set-up-signing.sh    Import the certificate to sign the apps
+                                with into a keychain.
 
    Out Of Order is freeware, and anyone may give it away together with its
 readme and licence. We change nothing in the game, and only add a
@@ -72,14 +75,55 @@ Order, so keep get-out-of-order.sh for those.
 Building the SLUDGE Development Kit
 ***********************************
 
-Windows and Mac OS X
-====================
+Windows
+=======
 
-   So far, we build the Dev Kit with GTK 3 only on Linux. The Windows
-installer script, sludge.nsi, is for the earlier Dev Kit with GTK+ 2.16
-and GtkGLExt, and the Xcode project in the "Mac Dev Kit" directory is
-for Mac OS X 10.4, so we cannot build the current Dev Kit with either of
-them.
+   We build the Dev Kit for 64-bit Windows in MSYS2, in its UCRT64
+environment, with these packages: mingw-w64-ucrt-x86_64-toolchain,
+mingw-w64-ucrt-x86_64-gtk3, mingw-w64-ucrt-x86_64-libepoxy,
+mingw-w64-ucrt-x86_64-libpng, mingw-w64-ucrt-x86_64-librsvg,
+mingw-w64-ucrt-x86_64-adwaita-icon-theme, autoconf, automake, make and
+zip. Then, in the UCRT64 shell:
+
+     ./autogen.sh
+     ./configure --prefix=/
+     make
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 \
+       <OpenSLUDGE.exe> <version> x64 dist
+
+   With make-devkit-zip.sh, we put the tools, the engine and the parts of
+GTK that the tools need into one folder, and zip it. In the workflow, we
+make this zip in the DevKit (Windows x64) job, with the engine from the
+Windows (x64) job, and we publish it with the release.
+
+macOS
+=====
+
+   We build the Dev Kit for Macs with Apple Silicon, with GTK 3 from
+Homebrew. Install autoconf, automake, pkgconf, gtk+3, gtk-mac-integration,
+libepoxy, libpng, librsvg, adwaita-icon-theme and dylibbundler with brew.
+Then:
+
+     export MACOSX_DEPLOYMENT_TARGET=15.0
+     ./autogen.sh
+     ./configure --prefix=/
+     make
+     make install DESTDIR="$PWD/devkit-install"
+     packaging/macos/make-app.sh <sludge-engine> OpenSLUDGE.app OpenSLUDGE \
+       org.opensludge.engine images/Sludge.icns 11.0
+     packaging/macos/sign-app.sh OpenSLUDGE.app
+     packaging/macos/make-devkit.sh devkit-install "$(brew --prefix)" \
+       OpenSLUDGE.app 15.0 dist
+
+   With make-devkit.sh, we make an app for each tool, with the parts of GTK
+that the tool needs, and put the apps and OpenSLUDGE.app into the folder
+"dist/OpenSLUDGE Dev Kit". Homebrew installs libraries for the version of
+macOS that it runs on, so the apps run only on that version of macOS or
+later, and we build the tools for the same version with
+MACOSX_DEPLOYMENT_TARGET. In the workflow, we make the Dev Kit in the
+DevKit (macOS Apple Silicon) job, on macOS 15, with the engine from the
+macOS (Apple Silicon) job, and we publish its zip with the release.
 
 Linux
 =====

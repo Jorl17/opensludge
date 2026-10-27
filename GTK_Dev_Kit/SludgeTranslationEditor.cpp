@@ -37,10 +37,11 @@
 #include "Common.h"
 
 #include "SludgeTranslationEditor.h"
+#include "ToolNames.h"
 #include "TranslationEditorMain.h"
 
 SludgeTranslationEditor::SludgeTranslationEditor()
- : SludgeApplication(joinTwoStrings(DATADIR, "TranslationEditor.glade"), "flags", "translationeditor")
+ : SludgeApplication(joinTwoStrings(getDataFolder(), "TranslationEditor.glade"), "flags", "translationeditor")
 {
 	if (!initSuccess) return;
 
@@ -78,7 +79,7 @@ gboolean SludgeTranslationEditor::init(gboolean calledFromConstructor)
 
 const char * SludgeTranslationEditor::getWindowTitle()
 {
-	return "SLUDGE Translation Editor";
+	return TRANSLATIONEDITOR_NAME;
 }
 
 const char * SludgeTranslationEditor::getFilterName()
@@ -86,9 +87,9 @@ const char * SludgeTranslationEditor::getFilterName()
 	return "SLUDGE Translation Files (*.tra)";
 }
 
-const char * SludgeTranslationEditor::getFilterPattern()
+const char * SludgeTranslationEditor::getFilterExtension()
 {
-	return "*.[tT][rR][aA]";
+	return "tra";
 }
 
 const char * SludgeTranslationEditor::getUntitledFilename()
@@ -449,7 +450,7 @@ void SludgeTranslationEditor::on_load_strings_clicked()
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "SLUDGE Project Files (*.slp)");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][pP]");
+	addExtensionPattern(filter, "slp");
 	gtk_file_chooser_add_filter(dialog, filter);
 
 	gtk_file_chooser_set_filter(dialog, filter);
@@ -509,7 +510,7 @@ gboolean SludgeTranslationEditor::searchEqualFunc(GtkTreeModel *model, const gch
 	g_free(original);
 	g_free(translation);
 	g_regex_unref(regex);
-	delete pattern;
+	delete [] pattern;
 
 	return retval;
 }

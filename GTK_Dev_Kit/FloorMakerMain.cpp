@@ -83,52 +83,10 @@ on_about(GtkMenuItem *theItem, gpointer theUser_data)
 
 // SludgeGLApplication callbacks:
 
-G_MODULE_EXPORT void
-on_drawingarea1_realize(GtkWidget *theWidget, gpointer theUser_data)
-{
-	floorMaker->on_drawingarea1_realize(theWidget);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_render(GtkWidget *theWidget, GdkGLContext *context, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_render(theWidget, context);
-}
-
 G_MODULE_EXPORT gboolean
 render_timer_event(gpointer theUser_data)
 {
 	return floorMaker->render_timer_event(theUser_data);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_scroll_event(GtkWidget *theWidget, GdkEventScroll *theEvent, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_scroll_event(theWidget, theEvent);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_button_press_event(GtkWidget *theWidget, GdkEventButton *theEvent, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_button_press_event(theWidget, theEvent);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_button_release_event(GtkWidget *theWidget, GdkEventButton *theEvent, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_button_release_event(theWidget, theEvent);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_motion_notify_event(GtkWidget *theWidget, GdkEventMotion *theEvent, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_motion_notify_event(theWidget, theEvent);
-}
-
-G_MODULE_EXPORT gboolean
-on_drawingarea1_leave_notify_event(GtkWidget *theWidget, GdkEventAny *theEvent, gpointer theUser_data)
-{
-	return floorMaker->on_drawingarea1_leave_notify_event(theWidget, theEvent);
 }
 
 G_MODULE_EXPORT void
@@ -262,9 +220,7 @@ main(int argc, char *argv[])
 		return -1;
 	}
 
-	// On Windows, change to the program directory to
-	// make sure the necessary resource files are found:
-	winChangeToProgramDir(argv[0]);
+	setUpProgramFiles(argv[0]);
 
 	/*
 	 * Init GTK+.

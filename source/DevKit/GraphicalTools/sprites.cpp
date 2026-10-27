@@ -12,17 +12,17 @@
 void forgetSpriteBank (spriteBank * forgetme) {
 	unsigned int index;
 	
-	delete forgetme->myPalette.pal;
-	delete forgetme->myPalette.r;
-	delete forgetme->myPalette.g;
-	delete forgetme->myPalette.b;
+	delete [] forgetme->myPalette.pal;
+	delete [] forgetme->myPalette.r;
+	delete [] forgetme->myPalette.g;
+	delete [] forgetme->myPalette.b;
 	if (forgetme->total) {
 		for (index = 0; index < forgetme->total; index ++) {
-			delete forgetme->sprites[index].data;
+			delete [] forgetme->sprites[index].data;
 			glDeleteTextures (1, &forgetme->myPalette.tex_names[index]);
 		}
 	}
-	delete forgetme->sprites;
+	delete [] forgetme->sprites;
 }
 
 bool reserveSpritePal (spritePalette * sP, int n) {
@@ -107,7 +107,7 @@ bool savePNGSprite (FILE * fp, struct spriteBank *sprites, int index, bool sig) 
 		for (int i = 0; i < sprites->sprites[index].width*4; i++) {
 			d[i] = 0;
 		}
-		delete sprites->sprites[index].data;
+		delete [] sprites->sprites[index].data;
 		sprites->sprites[index].data = d;
 	}
 	
@@ -497,7 +497,7 @@ bool loadSpriteTextures (spriteBank *loadhere) {
 			glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tmp);
 			
-			delete tmp;		
+			delete [] tmp;		
 		}
 	} else {
 		GLubyte * tmp;
@@ -535,7 +535,7 @@ bool loadSpriteTextures (spriteBank *loadhere) {
 			glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tmp);
 			
-			delete tmp;		
+			delete [] tmp;		
 		}
 	}
 	return true;
@@ -675,7 +675,7 @@ void addSprite (int i, struct spriteBank *sprites) {
 		i1--;
 	}
 	if (sprites->sprites) {
-		delete sprites->sprites;
+		delete [] sprites->sprites;
 	}
 	sprites->sprites = newsprites;
 	sprites->total++;
@@ -704,13 +704,13 @@ void deleteSprite (int i, struct spriteBank *sprites) {
 			i2++;
 		} else {
 			if (sprites->sprites[i1].data) {
-				delete sprites->sprites[i1].data;
+				delete [] sprites->sprites[i1].data;
 				glDeleteTextures(1, (const GLuint*) &sprites->myPalette.tex_names[i1]);
 			}
 		}
 		i1++;
 	}
-	delete sprites->sprites;
+	delete [] sprites->sprites;
 	sprites->sprites = newsprites;
 	sprites->total--;
 	
@@ -759,7 +759,7 @@ bool loadSpriteFromTGA (const char * file, struct spriteBank *sprites, int index
 	if (fp == NULL) {
 		char * error = joinStrings(file, "\n\nThe file can't be opened. I don't know why.");
 		errorBox ("Can't open TGA file", error);
-		delete error;
+		delete [] error;
 		return false;
 	}
 		
@@ -771,7 +771,7 @@ bool loadSpriteFromTGA (const char * file, struct spriteBank *sprites, int index
 		fclose (fp);
 		char * error = joinStrings(file, "\n\n", errorBack);
 		errorBox ("Can't open TGA file", error);
-		delete error;
+		delete [] error;
 		return false;
 	}
 	
@@ -804,7 +804,7 @@ bool loadSpriteFromTGA (const char * file, struct spriteBank *sprites, int index
 						fclose(fp);
 						errorBox ("Can't create sprite", "The sprite bank palette doesn't have enough room left to add the colours. Change the palette mode to locked or 32-bit and try again.");
 						sprites->myPalette.total = palSize;
-						delete data;
+						delete [] data;
 						return false;
 					}
 					data[t2*imageHeader.width+t1] = c;
@@ -838,7 +838,7 @@ bool loadSpriteFromTGA (const char * file, struct spriteBank *sprites, int index
 		}
 	}
 	fclose (fp);
-	if (sprites->sprites[index].data) delete sprites->sprites[index].data;
+	if (sprites->sprites[index].data) delete [] sprites->sprites[index].data;
 
 	sprites->sprites[index].data = data;
 	sprites->sprites[index].width = imageHeader.width;
@@ -899,7 +899,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 	if (sprites->type<2) {
 		char * error = joinStrings(file, "\n\nPNG files currently not supported in palette mode. Change to 32-bit mode and try again.");
 		errorBox ("Can't open PNG file", error);
-		delete error;
+		delete [] error;
 		return false;
 	}
 	
@@ -908,7 +908,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 	if (fp == NULL) {
 		char * error = joinStrings(file, "\n\nThe file can't be opened. I don't know why.");
 		errorBox ("Can't open PNG file", error);
-		delete error;
+		delete [] error;
 		return false;
 	}
 	
@@ -921,7 +921,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 		fclose (fp);
 		char * error = joinStrings(file, "\n\nIt doesn't appear to be a valid PNG image.");
 		errorBox ("Can't open PNG file", error);
-		delete error;
+		delete [] error;
 		return false;
     }
 	
@@ -930,7 +930,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 		fclose (fp);
 		char * error = joinStrings(file, "\n\nError reading the file.");
 		errorBox ("Can't open PNG file", error);
-		delete error;
+		delete [] error;
 		return false;
 	}
 	
@@ -940,7 +940,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 		fclose (fp);
 		char * error = joinStrings(file, "\n\nError reading the file.");
 		errorBox ("Can't open PNG file", error);
-		delete error;
+		delete [] error;
 		return false;
     }
 	
@@ -982,7 +982,7 @@ bool loadSpriteFromPNG (const char * file, struct spriteBank *sprites, int index
 	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
 	fclose (fp);
-	if (sprites->sprites[index].data) delete sprites->sprites[index].data;
+	if (sprites->sprites[index].data) delete [] sprites->sprites[index].data;
 	
 	sprites->sprites[index].data = data;
 	sprites->sprites[index].width = width;
@@ -1071,7 +1071,7 @@ void doFontification (struct spriteBank *sprites, unsigned int fontifySpaceWidth
 					sprites->sprites[which].width = width;
 					sprites->sprites[which].height = sprites->sprites[0].height;
 					sprites->sprites[which].yhot = yhot;
-					delete sprites->sprites[which].data;
+					delete [] sprites->sprites[which].data;
 					sprites->sprites[which].data = dataIfOK;
 					which ++;
 				}					
@@ -1084,7 +1084,7 @@ void doFontification (struct spriteBank *sprites, unsigned int fontifySpaceWidth
 	sprites->sprites[which].width = fontifySpaceWidth;
 	sprites->sprites[which].height = 1;
 	sprites->sprites[which].yhot = 0;
-	delete sprites->sprites[which].data;
+	delete [] sprites->sprites[which].data;
 	sprites->sprites[which].data = new GLubyte [fontifySpaceWidth * 4];
 	memset(sprites->sprites[which].data, 0, fontifySpaceWidth * 4);
 
@@ -1106,9 +1106,9 @@ bool convertSpriteBank8to32 (struct spriteBank *sprites) {
 		unsigned char * data = new unsigned char [sprites->sprites[i].height*sprites->sprites[i].width*4];
 		if (! data) {
 			while (--i >= 0) {
-				delete newsprites[i].data;
+				delete [] newsprites[i].data;
 			}
-			delete newsprites;
+			delete [] newsprites;
 			return errorBox ("Can't convert sprite bank", "Out of memory.");
 		}
 		unsigned char s;
@@ -1142,9 +1142,9 @@ bool convertSpriteBank8to32 (struct spriteBank *sprites) {
 	}
 	
 	for (int i = 0; i< sprites->total; i++) {
-		delete sprites->sprites[i].data;
+		delete [] sprites->sprites[i].data;
 	}
-	delete sprites->sprites;
+	delete [] sprites->sprites;
 	sprites->sprites = newsprites;
 
 	sprites->type = 2;	

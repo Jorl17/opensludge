@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <glib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,19 +30,19 @@ bool silent = true;
 
 void noSettings () {
 
-	if (settings.quitMessage) delete settings.quitMessage;
+	if (settings.quitMessage) delete [] settings.quitMessage;
 	settings.quitMessage = joinStrings ("Are you sure you want to quit?", "");
-	if (settings.customIcon) delete settings.customIcon;
+	if (settings.customIcon) delete [] settings.customIcon;
 	settings.customIcon = joinStrings ("", "");
-	if (settings.customLogo) delete settings.customLogo;
+	if (settings.customLogo) delete [] settings.customLogo;
 	settings.customLogo = joinStrings ("", "");
-	if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
+	if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
 	settings.runtimeDataFolder = joinStrings ("save", "");
-	if (settings.finalFile) delete settings.finalFile;
+	if (settings.finalFile) delete [] settings.finalFile;
 	settings.finalFile =joinStrings ("Gamedata", "");
-	if (settings.windowName) delete settings.windowName;
+	if (settings.windowName) delete [] settings.windowName;
 	settings.windowName = joinStrings ("New SLUDGE Game", "");
-	if (settings.originalLanguage) delete settings.originalLanguage;
+	if (settings.originalLanguage) delete [] settings.originalLanguage;
 	settings.originalLanguage =joinStrings ("English", "");
 	settings.screenWidth = 640;
 	settings.screenHeight = 480;
@@ -70,31 +71,31 @@ void readDir (char * t) {
 	stringArray * splitLine = splitString (t, '=', ONCE);
 	if (splitLine -> next) {
 		if (strcmp (splitLine -> string, "quitmessage") == 0) {
-			delete settings.quitMessage;
+			delete [] settings.quitMessage;
 			settings.quitMessage = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "customicon") == 0) {
-			if (settings.customIcon) delete settings.customIcon;
+			if (settings.customIcon) delete [] settings.customIcon;
 			settings.customIcon = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "customlogo") == 0) {
-			if (settings.customLogo) delete settings.customLogo;
+			if (settings.customLogo) delete [] settings.customLogo;
 			settings.customLogo = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "datafolder") == 0) {
-			if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
+			if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
 			settings.runtimeDataFolder = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "finalfile") == 0) {
-			if (settings.finalFile) delete settings.finalFile;
+			if (settings.finalFile) delete [] settings.finalFile;
 			settings.finalFile = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "windowname") == 0) {
-			if (settings.windowName) delete settings.windowName;
+			if (settings.windowName) delete [] settings.windowName;
 			settings.windowName = joinStrings ("", splitLine -> next -> string);
 
 		} else if (strcmp (splitLine -> string, "language") == 0) {
-			if (settings.originalLanguage) delete settings.originalLanguage;
+			if (settings.originalLanguage) delete [] settings.originalLanguage;
 			settings.originalLanguage = joinStrings ("", splitLine -> next -> string);
 
 		// NEW MOUSE SETTING
@@ -163,7 +164,7 @@ bool readSettings (FILE * fp) {
 			readDir (grabLine);
 		} else
 			keepGoing = false;
-		delete grabLine;
+		delete [] grabLine;
 	}
 
 	if (! settings.finalFile) return addComment (ERRORTYPE_PROJECTERROR, "Vital line missing from project", "finalfile", NULL,0);
@@ -173,12 +174,12 @@ bool readSettings (FILE * fp) {
 
 void killSettingsStrings ()
 {
-	if (settings.quitMessage) delete settings.quitMessage;
-	if (settings.customIcon) delete settings.customIcon;
-	if (settings.customLogo) delete settings.customLogo;
-	if (settings.runtimeDataFolder) delete settings.runtimeDataFolder;
-	if (settings.finalFile) delete settings.finalFile;
-	if (settings.windowName) delete settings.windowName;
+	if (settings.quitMessage) delete [] settings.quitMessage;
+	if (settings.customIcon) delete [] settings.customIcon;
+	if (settings.customLogo) delete [] settings.customLogo;
+	if (settings.runtimeDataFolder) delete [] settings.runtimeDataFolder;
+	if (settings.finalFile) delete [] settings.finalFile;
+	if (settings.windowName) delete [] settings.windowName;
 }
 
 
@@ -288,7 +289,7 @@ FILE * openFinalFile (const char * addMe, const char * mode) {
 
 	gotoSourceDirectory ();
 	FILE * fp = fopen (fullName, mode);
-	delete fullName;
+	delete [] fullName;
 
 	return fp;
 }
@@ -342,13 +343,14 @@ void writeFinalData (FILE * mainFile) {
 	fputc (settings.frameSpeed, mainFile);
 	writeString ("", mainFile); // Unused - was used for registration.
 
-	// Now write the date and time of compilation...
-
-	/* TODO - but not used by the engine anyway
-		SYSTEMTIME systemTime;*/
+	// The time of compilation, as a Windows FILETIME, which counts intervals
+	// of 100 nanoseconds from 1 January 1601 UTC. The engine saves it in each
+	// saved game, and loads only the saved games with the same time. GLib
+	// gives us the time in microseconds from 1 January 1970 UTC.
+	uint64_t intervals = ((uint64_t) g_get_real_time () + 11644473600000000ULL) * 10;
 	FILETIME fileTime;
-	//GetSystemTime (& systemTime);
-	//SystemTimeToFileTime (& systemTime, & fileTime);
+	fileTime.dwLowDateTime = (uint32_t) intervals;
+	fileTime.dwHighDateTime = (uint32_t) (intervals >> 32);
 	fwrite (& fileTime, sizeof (fileTime), 1, mainFile);
 
 	// More bits

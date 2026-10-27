@@ -54,7 +54,7 @@ jobs:
           fi
 
   devkit:
-    name: DevKit (GTK 3)
+    name: DevKit (Linux)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: devkit-view-test
+          name: devkit-linux-view-test
           path: |
             GTK_Dev_Kit/*-actual.png
             GTK_Dev_Kit/*-difference.png
@@ -114,7 +114,7 @@ jobs:
           done
 
   windows:
-    name: Windows
+    name: Windows (x64)
     runs-on: windows-2022
     defaults:
       run:
@@ -155,12 +155,88 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-zips
+          name: zips-windows-x64
+          path: dist/*.zip
+          if-no-files-found: error
+
+  windows-devkit:
+    name: DevKit (Windows x64)
+    needs: windows
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-gtk3
+            mingw-w64-ucrt-x86_64-libepoxy
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-librsvg
+            mingw-w64-ucrt-x86_64-adwaita-icon-theme
+            autoconf
+            automake
+            make
+            zip
+            unzip
+
+      - name: Build
+        run: |
+          ./autogen.sh
+          ./configure --prefix=/
+          make -j"$(nproc)"
+          # On Windows, a folder named install would clash with INSTALL.
+          make install DESTDIR="$PWD/devkit-install"
+
+      # We put the engine from the OpenSLUDGE zip of the Windows (x64) job
+      # into the Dev Kit, to run the games with.
+      - uses: actions/download-artifact@v4
+        with:
+          name: zips-windows-x64
+          path: engine
+
+      - name: Make the zip
+        run: |
+          unzip -q -j engine/OpenSLUDGE-*-windows-x64.zip OpenSLUDGE/OpenSLUDGE.exe -d engine
+          packaging/windows/make-devkit-zip.sh devkit-install /ucrt64 engine/OpenSLUDGE.exe \
+            "$(packaging/version.sh)" x64 dist
+
+      - name: Start the tools from the zip
+        run: |
+          unzip -q dist/OpenSLUDGE-DevKit-*.zip -d unpacked
+          cd "unpacked/OpenSLUDGE Dev Kit"
+          # We leave the GTK of MSYS2 out of PATH and XDG_DATA_DIRS, so that
+          # the tools can only use the DLLs, schemas and icons in the zip.
+          run() { env -u XDG_DATA_DIRS PATH=/usr/bin "$@"; }
+          run ./sludge-compiler.exe --help
+          # Each editor has to stay alive for 10 seconds, which means that it
+          # started without a fatal error.
+          for app in sludge-floormaker sludge-zbuffermaker sludge-spritebankeditor \
+                     sludge-translationeditor sludge-projectmanager; do
+            set +e
+            run timeout 10 ./$app.exe
+            status=$?
+            set -e
+            if [ $status -ne 124 ]; then
+              echo "$app exited early with status $status"
+              exit 1
+            fi
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devkit-windows-x64
           path: dist/*.zip
           if-no-files-found: error
 
   windows-x86:
-    name: Windows (32-bit, from Windows XP)
+    name: Windows (x86, from Windows XP)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -191,20 +267,24 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: windows-x86-zips
+          name: zips-windows-x86
           path: dist/*.zip
           if-no-files-found: error
 
   macos:
-    name: macOS (${{ matrix.arch }})
+    name: macOS (${{ matrix.name }})
     runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: arm64
+            name: Apple Silicon
+            label: apple-silicon
             min_macos: '11.0'
           - arch: x86_64
+            name: Intel
+            label: intel
             min_macos: '10.13'
     steps:
       - uses: actions/checkout@v4
@@ -239,7 +319,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: sludge-engine-macos-${{ matrix.arch }}
+          name: engine-macos-${{ matrix.label }}
           path: build/sludge-engine
           if-no-files-found: error
 
@@ -258,14 +338,14 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          pattern: sludge-engine-macos-*
+          pattern: engine-macos-*
           path: engines
 
       - name: Make the universal executable
         run: |
           mkdir -p bin/arm64 bin/x86_64 bin/universal
-          cp engines/sludge-engine-macos-arm64/sludge-engine bin/arm64/
-          cp engines/sludge-engine-macos-x86_64/sludge-engine bin/x86_64/
+          cp engines/engine-macos-apple-silicon/sludge-engine bin/arm64/
+          cp engines/engine-macos-intel/sludge-engine bin/x86_64/
           lipo -create -output bin/universal/sludge-engine bin/arm64/sludge-engine bin/x86_64/sludge-engine
           chmod +x bin/*/sludge-engine
           lipo -info bin/universal/sludge-engine
@@ -283,17 +363,7 @@ jobs:
       - name: Set up code signing
         if: env.MACOS_CERTIFICATE_P12_BASE64 != ''
         run: |
-          keychain=$RUNNER_TEMP/signing.keychain-db
-          keychain_password=$(openssl rand -hex 16)
-          echo "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security create-keychain -p "$keychain_password" "$keychain"
-          security set-keychain-settings -lut 21600 "$keychain"
-          security unlock-keychain -p "$keychain_password" "$keychain"
-          security import $RUNNER_TEMP/certificate.p12 -P "$MACOS_CERTIFICATE_PASSWORD" \
-            -A -t cert -f pkcs12 -k "$keychain"
-          security set-key-partition-list -S apple-tool:,apple: -k "$keychain_password" "$keychain"
-          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
-          identity=$(security find-identity -v -p codesigning "$keychain" | grep 'Developer ID Application' | head -n 1 | sed -E 's/.*"(.*)"/\1/')
+          identity=$(packaging/macos/set-up-signing.sh "$RUNNER_TEMP")
           echo "Signing as: $identity"
           echo "MACOS_SIGNING_IDENTITY=$identity" >> $GITHUB_ENV
 
@@ -392,14 +462,234 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: macos-apps
+          name: zips-macos
+          path: dist/*.zip
+          if-no-files-found: error
+
+  macos-devkit:
+    name: DevKit (macOS Apple Silicon)
+    needs: macos
+    runs-on: macos-15
+    env:
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+      APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+      # The Homebrew libraries on this runner are for macOS 15 or later, so we
+      # build the tools for the same versions.
+      MACOSX_DEPLOYMENT_TARGET: '15.0'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install autoconf automake pkgconf gtk+3 gtk-mac-integration libepoxy libpng \
+            librsvg adwaita-icon-theme dylibbundler
+
+      - name: Build
+        run: |
+          ./autogen.sh
+          ./configure --prefix=/
+          make -j"$(sysctl -n hw.ncpu)"
+          make install DESTDIR="$PWD/devkit-install"
+
+      # We put the engine of the macOS (Apple Silicon) job into the Dev Kit, to
+      # run the games with.
+      - uses: actions/download-artifact@v4
+        with:
+          name: engine-macos-apple-silicon
+          path: engine
+
+      - name: Set up code signing
+        if: env.MACOS_CERTIFICATE_P12_BASE64 != ''
+        run: |
+          identity=$(packaging/macos/set-up-signing.sh "$RUNNER_TEMP")
+          echo "Signing as: $identity"
+          echo "MACOS_SIGNING_IDENTITY=$identity" >> $GITHUB_ENV
+
+      - name: Make the apps
+        id: apps
+        run: |
+          chmod +x engine/sludge-engine
+          packaging/macos/make-app.sh engine/sludge-engine engine/OpenSLUDGE.app \
+            OpenSLUDGE org.opensludge.engine images/Sludge.icns 11.0
+          packaging/macos/sign-app.sh engine/OpenSLUDGE.app
+          packaging/macos/make-devkit.sh devkit-install "$(brew --prefix)" engine/OpenSLUDGE.app \
+            "$MACOSX_DEPLOYMENT_TARGET" stage
+
+      # In the steps that test the apps, we report every problem that we find
+      # before we fail.
+      - name: Check the apps
+        run: |
+          cd "stage/OpenSLUDGE Dev Kit"
+          failed=no
+          for app in *.app; do
+            codesign --verify --strict "$app" || { echo "::error::The signature of $app is not valid"; failed=yes; }
+          done
+          # Every library must be one in the apps or one of macOS, and no
+          # program or library may require a later version of macOS than the
+          # apps.
+          while IFS= read -r -d '' file; do
+            case "$(file -b "$file")" in *Mach-O*) ;; *) continue ;; esac
+            if otool -L "$file" | tail -n +2 | grep -v -E '^\s+(@executable_path/|/usr/lib/|/System/Library/)'; then
+              echo "::error::$file uses libraries from outside the apps"
+              failed=yes
+            fi
+            minos=$(otool -l "$file" | awk '/cmd LC_BUILD_VERSION/ { found = 1 } found && $1 == "minos" { print $2; exit }')
+            latest=$(printf '%s\n' "$minos" "$MACOSX_DEPLOYMENT_TARGET" | sort -V | tail -n 1)
+            if [ -n "$minos" ] && [ "$latest" != "$MACOSX_DEPLOYMENT_TARGET" ]; then
+              echo "::error::$file requires macOS $minos"
+              failed=yes
+            fi
+          done < <(find . -type f -print0)
+          grep -v '^#' "SLUDGE Floor Maker.app/Contents/Resources/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+          du -sh *.app
+          [ $failed = no ]
+
+      - name: Notarise
+        if: env.MACOS_SIGNING_IDENTITY != '' && env.APPLE_API_KEY_P8_BASE64 != ''
+        run: |
+          echo "$APPLE_API_KEY_P8_BASE64" | base64 --decode > $RUNNER_TEMP/api_key.p8
+          (cd stage && ditto -c -k --keepParent "OpenSLUDGE Dev Kit" ../notarise.zip)
+          xcrun notarytool submit notarise.zip --wait \
+            --key $RUNNER_TEMP/api_key.p8 --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID"
+          for app in "stage/OpenSLUDGE Dev Kit"/*.app; do xcrun stapler staple "$app"; done
+
+      - name: Make the zip
+        id: zip
+        if: always() && steps.apps.outcome == 'success'
+        run: |
+          mkdir -p dist
+          (cd stage && ditto -c -k --keepParent "OpenSLUDGE Dev Kit" \
+            ../dist/OpenSLUDGE-DevKit-$(../packaging/version.sh)-macOS-apple-silicon.zip)
+          ls -la dist
+          ditto -x -k dist/OpenSLUDGE-DevKit-*.zip unpacked
+          mkdir -p screenshots
+
+      # We move Homebrew away, so that the tools can only use the libraries,
+      # loaders, schemas and icons in the apps.
+      - name: Move Homebrew away
+        if: always() && steps.zip.outcome == 'success'
+        run: sudo mv "$(brew --prefix)" "$(brew --prefix)-away"
+
+      - name: Start the tools from the zip
+        if: always() && steps.zip.outcome == 'success'
+        run: |
+          cd "unpacked/OpenSLUDGE Dev Kit"
+          failed=no
+          "SLUDGE Project Manager.app/Contents/MacOS/sludge-compiler" --help > /dev/null ||
+            { echo "::error::sludge-compiler did not run"; failed=yes; }
+          # Each tool has to stay alive for 10 seconds without printing a
+          # warning, which means that it started without problems. We open a
+          # file of VerbCoin in each editor, to see in the screenshots that
+          # the editor draws its view.
+          verbcoin="$GITHUB_WORKSPACE/doc/ExampleProjects/VerbCoin"
+          for app in "SLUDGE Project Manager:" "SLUDGE Floor Maker:outside/room.flo" \
+                     "SLUDGE Sprite Bank Editor:ego/alien.duc" "SLUDGE Z-Buffer Maker:outside/room.zbu" \
+                     "SLUDGE Translation Editor:german.tra"; do
+            file=${app#*:}
+            app=${app%%:*}
+            executable=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$app.app/Contents/Info.plist")
+            log="$GITHUB_WORKSPACE/screenshots/$executable.log"
+            "$app.app/Contents/MacOS/$executable" ${file:+"$verbcoin/$file"} > "$log" 2>&1 &
+            pid=$!
+            sleep 10
+            screencapture -x "$GITHUB_WORKSPACE/screenshots/$executable.png" || true
+            # The menus of the tool have to be in the macOS menu bar, and
+            # About in the app menu.
+            process="first process whose unix id is $pid"
+            menus=$(osascript -e "tell application \"System Events\" to get name of every menu bar item of menu bar 1 of ($process)" 2>&1 || true)
+            app_menu=$(osascript -e "tell application \"System Events\" to get name of every menu item of menu 1 of menu bar item 2 of menu bar 1 of ($process)" 2>&1 || true)
+            echo "Menu bar of $app: $menus"
+            echo "App menu of $app: $app_menu"
+            case "$menus" in
+              *File*) ;;
+              *) echo "::error::The menus of $app are not in the macOS menu bar"; failed=yes ;;
+            esac
+            case "$app_menu" in
+              *"About $app"*) ;;
+              *) echo "::error::The app menu of $app has no About item"; failed=yes ;;
+            esac
+            if kill -0 $pid 2>/dev/null; then
+              kill $pid
+            else
+              echo "::error::$app stopped before 10 seconds"
+              failed=yes
+            fi
+            cat "$log"
+            if grep -q -E "CRITICAL|WARNING|ERROR" "$log"; then
+              echo "::error::$app printed a warning or an error"
+              failed=yes
+              # With G_DEBUG=fatal-warnings, the first warning stops the tool,
+              # and the crash report shows where we were when GTK warned.
+              G_DEBUG=fatal-warnings "$app.app/Contents/MacOS/$executable" ${file:+"$verbcoin/$file"} > /dev/null 2>&1 &
+              pid=$!
+              sleep 10
+              kill $pid 2>/dev/null || true
+              "$GITHUB_WORKSPACE/.github/scripts/print-crash-report.py" "$executable"
+            fi
+          done
+          # The folder where we keep the settings, for README-DevKit.txt.
+          ls -d ~/.config/sludge-devkit ~/Library/Application\ Support/sludge-devkit 2>/dev/null || true
+          [ $failed = no ]
+
+      - name: Open a floor and run a game with open
+        if: always() && steps.zip.outcome == 'success'
+        run: |
+          kit="$PWD/unpacked/OpenSLUDGE Dev Kit"
+          lsregister=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+          for app in "$kit"/*.app; do "$lsregister" -f "$app"; done
+          failed=no
+          cp -R doc/ExampleProjects/VerbCoin verbcoin
+          "$kit/SLUDGE Project Manager.app/Contents/MacOS/sludge-compiler" verbcoin/VerbCoin.slp || true
+          game="$PWD/verbcoin/Verb coin example.slg"
+          if [ ! -f "$game" ]; then
+            echo "::error::The compiler did not make the game file"
+            ls verbcoin
+            .github/scripts/print-crash-report.py sludge-compiler
+            failed=yes
+          fi
+          # We start the apps with open, as the project manager does, and each
+          # one has to be running after 10 seconds.
+          start () {
+            local name=$1 process=$2 picture=$3
+            shift 3
+            if ! open -n -a "$name" --args "$@"; then
+              echo "::error::open did not start $name"
+              failed=yes
+              return
+            fi
+            sleep 10
+            screencapture -x "screenshots/$picture.png" || true
+            if ! pgrep -f "$process" > /dev/null; then
+              echo "::error::$name stopped before 10 seconds"
+              failed=yes
+            fi
+            pkill -f "$process" || true
+          }
+          start "SLUDGE Floor Maker" sludge-floormaker open-floor "$PWD/verbcoin/outside/room.flo"
+          start "SLUDGE Sprite Bank Editor" sludge-spritebankeditor open-without-file
+          start OpenSLUDGE sludge-engine run-game "$game"
+          [ $failed = no ]
+
+      - name: Keep the screenshots and logs of the failed tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devkit-macos-test-screenshots
+          path: screenshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: devkit-macos-apple-silicon
           path: dist/*.zip
           if-no-files-found: error
 
   release:
     name: Publish the release
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, windows, windows-x86, macos-package]
+    needs: [linux, windows, windows-devkit, windows-x86, macos-package, macos-devkit]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -408,17 +698,27 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: macos-apps
+          name: zips-macos
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: windows-zips
+          name: zips-windows-x64
           path: dist
 
       - uses: actions/download-artifact@v4
         with:
-          name: windows-x86-zips
+          name: zips-windows-x86
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: devkit-windows-x64
+          path: dist
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: devkit-macos-apple-silicon
           path: dist
 
       - name: Publish

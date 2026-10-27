@@ -8,10 +8,6 @@
 extern "C" {
 #endif
 
-#ifndef WIN32
-#define HWND int
-#endif
-
 #define SPRITE_AREA_X	193
 #define SPRITE_AREA_Y	100
 #define SPRITE_AREA_W	264
@@ -61,12 +57,6 @@ void doFontification (struct spriteBank *sprites, unsigned int fontifySpaceWidth
 
 bool convertSpriteBank8to32 (struct spriteBank *sprites);
 bool exportToPNG (const char * file, struct spriteBank *sprites, int index);
-
-void paintPal (HWND h);
-void sortColours (HWND h);
-void optimizePalette ();
-bool saveSpriteToTGA (char * file, int);
-bool trimSprite (int);
 
 void pasteSprite (struct sprite * single, const struct spritePalette * fontPal, bool showBox);
 

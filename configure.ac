@@ -30,13 +30,25 @@ if test "x$enable_doc" = x; then
   enable_doc="no"
 fi
 
-# Are we cross compiling for windows?
+# Are we building for Windows, with MinGW (32-bit or 64-bit) or Cygwin? In
+# MSYS2, the host from config.guess is x86_64-pc-mingw64, and with MinGW-w64
+# cross compilers, it is x86_64-w64-mingw32.
 case "${host}" in
-        i[[3456789]]86-mingw32*) WIN32="yes" ;;
+        *mingw*) WIN32="yes" ;;
         *cygwin*) WIN32="yes" ;;
         *) WIN32="no" ;;
 esac
 AM_CONDITIONAL([COND_WIN32], test x"$WIN32" = xyes)
+if test x"$WIN32" = xyes; then
+  AC_CHECK_TOOL([WINDRES], [windres])
+fi
+
+# Are we building for macOS?
+case "${host}" in
+        *darwin*) MACOS="yes" ;;
+        *) MACOS="no" ;;
+esac
+AM_CONDITIONAL([COND_MACOS], test x"$MACOS" = xyes)
 
 # Checks for libraries.
 if test "x$enable_devkit" = xyes; then
@@ -44,6 +56,10 @@ if test "x$enable_devkit" = xyes; then
   PKG_CHECK_MODULES([GTK], [gtk+-3.0 >= 3.20 gthread-2.0 gobject-2.0 gmodule-2.0])
   PKG_CHECK_MODULES([GLIB], [glib-2.0])
   PKG_CHECK_MODULES([LIBPNG], [libpng])
+  if test x"$MACOS" = xyes; then
+    # On macOS, we put the menus of the tools into the macOS menu bar.
+    PKG_CHECK_MODULES([MAC_INTEGRATION], [gtk-mac-integration-gtk3])
+  fi
 fi
 
 # Checks for header files.

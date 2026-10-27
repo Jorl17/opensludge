@@ -42,12 +42,13 @@
 #include "Common.h"
 
 #include "SludgeProjectManager.h"
+#include "ToolNames.h"
 #include "ProjectManagerMain.h"
 
 extern char * gameFile;
 
 SludgeProjectManager::SludgeProjectManager()
- : SludgeApplication(joinTwoStrings(DATADIR, "ProjectManager.glade"), "ProjIcon", "projectmanager")
+ : SludgeApplication(joinTwoStrings(getDataFolder(), "ProjectManager.glade"), "ProjIcon", "projectmanager")
 {
 	if (!initSuccess) return;
 
@@ -135,7 +136,7 @@ gboolean SludgeProjectManager::init(gboolean calledFromConstructor)
 
 const char * SludgeProjectManager::getWindowTitle()
 {
-	return "SLUDGE Project Manager";
+	return PROJECTMANAGER_NAME;
 }
 
 const char * SludgeProjectManager::getFilterName()
@@ -143,9 +144,9 @@ const char * SludgeProjectManager::getFilterName()
 	return "SLUDGE Project Files (*.slp)";
 }
 
-const char * SludgeProjectManager::getFilterPattern()
+const char * SludgeProjectManager::getFilterExtension()
 {
-	return "*.[sS][lL][pP]";
+	return "slp";
 }
 
 const char * SludgeProjectManager::getUntitledFilename()
@@ -174,15 +175,11 @@ void SludgeProjectManager::postOpen()
 void SludgeProjectManager::postNew()
 {
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 	gboolean success = FALSE;
 
 	dialog = newFileChooser("New SLUDGE Project", GTK_FILE_CHOOSER_ACTION_SAVE);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter(dialog, filter);
+	setFileTypeFilter(dialog);
 
 	gtk_file_chooser_set_current_name(dialog, getUntitledFilename());
 
@@ -314,30 +311,33 @@ void SludgeProjectManager::listChanged(whichTreeview whichOne)
 }
 
 void SludgeProjectManager::readIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-
-	FILE * fp = fopen("SLUDGE.ini", "rb");
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "rb");
+	g_free(iniFile);
 	
 	programSettings.compilerKillImages = 0;
 	programSettings.compilerWriteStrings = 0;
 	programSettings.compilerVerbose = 1;
 	programSettings.searchSensitive = 0;
-#ifdef __WIN32
+#if defined(__WIN32)
 	sprintf(editor, "%s", "notepad.exe");
 	sprintf(imageViewer, "%s", "rundll32.exe shimgvw.dll,ImageView_Fullscreen");
 	sprintf(audioPlayer, "%s", "mplay32.exe");
 	sprintf(modPlayer, "%s", "");
-#else
+#elif defined(__APPLE__)
+	// With open, macOS opens the file in the default app for files of its
+	// type, and with open -t, in the default text editor.
+	sprintf(editor, "%s", "open -t");
+	sprintf(imageViewer, "%s", "open");
+	sprintf(audioPlayer, "%s", "open");
+	sprintf(modPlayer, "%s", "open");
+#elif defined(__unix__)
 	sprintf(editor, "%s", "gedit");
 	sprintf(imageViewer, "%s", "eog");
 	sprintf(audioPlayer, "%s", "totem");
 	sprintf(modPlayer, "%s", "totem");
+#else
+#error "No default programs for the files of a project on this platform"
 #endif
 		
 	if (fp) {
@@ -428,20 +428,14 @@ void SludgeProjectManager::readIniFile() {
 		
 		fclose(fp);
 	}
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::saveIniFile() {
-	if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-	_mkdir("sludge-devkit");
-#else
-	g_mkdir("sludge-devkit", 0000777);
-#endif
-	g_chdir("sludge-devkit");
-	
-	FILE * fp = fopen("SLUDGE.ini", "wb");
-	
+	gchar * iniFile = getSettingsFilePath("SLUDGE.ini");
+	FILE * fp = g_fopen(iniFile, "wb");
+	g_free(iniFile);
+	if (!fp) return;
+
 	fprintf(fp, "KillImages=%d\x0D\x0A", programSettings.compilerKillImages);
 	fprintf(fp, "WriteStrings=%d\x0D\x0A", programSettings.compilerWriteStrings);
 	fprintf(fp, "Verbose=%d\x0D\x0A", programSettings.compilerVerbose);
@@ -451,7 +445,6 @@ void SludgeProjectManager::saveIniFile() {
 	fprintf(fp, "AudioPlayer=%s\x0D\x0A", audioPlayer);
 	fprintf(fp, "ModPlayer=%s\x0D\x0A", modPlayer);
 	fclose(fp);
-	g_chdir(workingDir);
 }
 
 void SludgeProjectManager::compile()
@@ -595,6 +588,35 @@ void SludgeProjectManager::on_files_tree_selection_changed(GtkTreeSelection *the
 	listChanged(RESOURCE_TREEVIEW);
 }
 
+// Return the command with which we start a tool of the Dev Kit.
+static const char * getToolCommand(whichProgram program)
+{
+	switch (program) {
+#if defined(__WIN32)
+		case FLOORMAKER: return "sludge-floormaker.exe";
+		case SPRITEBANKEDITOR: return "sludge-spritebankeditor.exe";
+		case ZBUFFERMAKER: return "sludge-zbuffermaker.exe";
+		case TRANSLATIONEDITOR: return "sludge-translationeditor.exe";
+#elif defined(__APPLE__)
+		// On macOS, each tool is an app, which we start with open. With -n,
+		// open starts a new instance even when the app is already running, so
+		// that the new instance receives the file after --args.
+		case FLOORMAKER: return "open -n -a \"" FLOORMAKER_NAME "\" --args";
+		case SPRITEBANKEDITOR: return "open -n -a \"" SPRITEBANKEDITOR_NAME "\" --args";
+		case ZBUFFERMAKER: return "open -n -a \"" ZBUFFERMAKER_NAME "\" --args";
+		case TRANSLATIONEDITOR: return "open -n -a \"" TRANSLATIONEDITOR_NAME "\" --args";
+#elif defined(__unix__)
+		case FLOORMAKER: return "sludge-floormaker";
+		case SPRITEBANKEDITOR: return "sludge-spritebankeditor";
+		case ZBUFFERMAKER: return "sludge-zbuffermaker";
+		case TRANSLATIONEDITOR: return "sludge-translationeditor";
+#else
+#error "No command to start the tools on this platform"
+#endif
+	}
+	return "";
+}
+
 void SludgeProjectManager::on_treeview_row_activated(GtkTreeView *theTreeView, GtkTreePath *thePath, GtkTreeViewColumn *theColumn, whichTreeview whichOne)
 {
 	GtkTreeModel *treeModel;
@@ -644,34 +666,18 @@ void SludgeProjectManager::on_treeview_row_activated(GtkTreeView *theTreeView, G
 		case FILE_TREEVIEW:
 			extension = tx + strlen(tx) - 4;
 			if ((strlen(tx) > 4) && (!strcmp(extension, ".tra") || !strcmp(extension, ".TRA"))) {
-#ifdef __WIN32
-				cmd = "sludge-translationeditor.exe";	
-#else
-				cmd = "sludge-translationeditor";	
-#endif
+				cmd = getToolCommand(TRANSLATIONEDITOR);
 			}
 			break;
 		case RESOURCE_TREEVIEW:
 			extension = tx + strlen(tx) - 4;	
 			if (strlen(tx) > 4) {
 				if        (!strcmp(extension, ".flo") || !strcmp(extension, ".FLO")) {
-#ifdef __WIN32
-					cmd = "sludge-floormaker.exe";
-#else
-					cmd = "sludge-floormaker";
-#endif
+					cmd = getToolCommand(FLOORMAKER);
 				} else if (!strcmp(extension, ".duc") || !strcmp(extension, ".DUC")) {
-#ifdef __WIN32
-					cmd = "sludge-spritebankeditor.exe";	
-#else
-					cmd = "sludge-spritebankeditor";	
-#endif
+					cmd = getToolCommand(SPRITEBANKEDITOR);
 				} else if (!strcmp(extension, ".zbu") || !strcmp(extension, ".ZBU")) {
-#ifdef __WIN32
-					cmd = "sludge-zbuffermaker.exe";	
-#else
-					cmd = "sludge-zbuffermaker";	
-#endif
+					cmd = getToolCommand(ZBUFFERMAKER);
 				} else if (!strcmp(extension, ".png") || !strcmp(extension, ".PNG")
 						|| !strcmp(extension, ".tga") || !strcmp(extension, ".TGA")) {
 					cmd = imageViewer;
@@ -724,24 +730,24 @@ void SludgeProjectManager::on_add_file_clicked()
 
 	filter = gtk_file_filter_new();
 	gtk_file_filter_set_name(filter, "SLU/SLD/TRA files");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][uU]");
-	gtk_file_filter_add_pattern(filter, "*.[sS][lL][dD]");
-	gtk_file_filter_add_pattern(filter, "*.[tT][rR][aA]");
+	addExtensionPattern(filter, "slu");
+	addExtensionPattern(filter, "sld");
+	addExtensionPattern(filter, "tra");
 	gtk_file_chooser_add_filter(dialog, filter);
 
 	slufilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(slufilter, "SLUDGE scripts (*.slu)");
-	gtk_file_filter_add_pattern(slufilter, "*.[sS][lL][uU]");
+	addExtensionPattern(slufilter, "slu");
 	gtk_file_chooser_add_filter(dialog, slufilter);
 
 	sldfilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(sldfilter, "SLUDGE constant definition files (*.sld)");
-	gtk_file_filter_add_pattern(sldfilter, "*.[sS][lL][dD]");
+	addExtensionPattern(sldfilter, "sld");
 	gtk_file_chooser_add_filter(dialog, sldfilter);
 
 	trafilter = gtk_file_filter_new();
 	gtk_file_filter_set_name(trafilter, "SLUDGE translation files (*.tra)");
-	gtk_file_filter_add_pattern(trafilter, "*.[tT][rR][aA]");
+	addExtensionPattern(trafilter, "tra");
 	gtk_file_chooser_add_filter(dialog, trafilter);
 
 	gtk_file_chooser_set_filter(dialog, filter);
@@ -830,30 +836,24 @@ void SludgeProjectManager::on_comp_okbutton_clicked(GtkButton *theButton)
 
 void SludgeProjectManager::on_comp_gamebutton_clicked()
 {
-	char cmd[1000];
 	char *file = getFullPath(gameFile);
 
-#ifdef __WIN32
-	int cmdSuccess;
-	int lastSlash = 0;
-	char engineDir[1000];
-	sprintf(engineDir, "%s", workingDir);
-
-	for (int k = 0; engineDir[k] != 0; k++) {
-		if (engineDir[k] == '\\') {
-			lastSlash = k;
-		}
+#if defined(__WIN32)
+	// On Windows, the engine is OpenSLUDGE.exe, in the folder of the Dev Kit,
+	// which is our working folder.
+	gchar *cmd = g_strdup_printf("\"%s\\OpenSLUDGE.exe\"", workingDir);
+	if (!sh_cmd(workingDir, cmd, file)) {
+		errorBox("Couldn't find the SLUDGE engine", "To run the game, we start OpenSLUDGE.exe from the folder of the Dev Kit. Make sure it's there.");
 	}
-	sprintf(engineDir + lastSlash + 1, "Engine");
-	sprintf(cmd, "\"%s\\SLUDGE Engine.exe\"", engineDir);
-	cmdSuccess = sh_cmd(engineDir, cmd, file);
-
-	if (!cmdSuccess) {
-		errorBox("Couldn't find SLUDGE Engine", "The SLUDGE Engine was expected at ..\\Engine\\SLUDGE Engine.exe relative to the Project Manager executable. Make sure it's there to make the Run Game button work.");
-	}
+	g_free(cmd);
+#elif defined(__APPLE__)
+	// On macOS, the engine is OpenSLUDGE.app, which we start with open, as
+	// we start the tools.
+	sh_cmd(workingDir, "open -n -a OpenSLUDGE --args", file);
+#elif defined(__unix__)
+	sh_cmd(workingDir, "sludge-engine", file);
 #else
-	sprintf(cmd, "%s", "sludge-engine");
-	sh_cmd(workingDir, cmd, file);
+#error "No command to start the engine on this platform"
 #endif
 
 	deleteString(file);
@@ -919,30 +919,5 @@ void SludgeProjectManager::on_preferences()
 
 void SludgeProjectManager::on_program_activate(whichProgram program)
 {
-	const char *exe;
-	char executable[200];
-#ifdef __WIN32
-	exe = ".exe";
-#else
-	exe = "";
-#endif
-
-	switch (program) {
-		case FLOORMAKER:
-			sprintf(executable, "sludge-floormaker%s", exe);
-			break;
-		case SPRITEBANKEDITOR:
-			sprintf(executable, "sludge-spritebankeditor%s", exe);
-			break;
-		case ZBUFFERMAKER:
-			sprintf(executable, "sludge-zbuffermaker%s", exe);
-			break;
-		case TRANSLATIONEDITOR:
-			sprintf(executable, "sludge-translationeditor%s", exe);
-			break;
-		default:
-			break;
-	}
-
-	sh_cmd(workingDir, executable, NULL);
+	sh_cmd(workingDir, getToolCommand(program), NULL);
 }

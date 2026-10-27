@@ -26,6 +26,7 @@ Makefile.in
 *.o
 /source/Engine/sludge-engine
 /GTK_Dev_Kit/view_test
+/GTK_Dev_Kit/sh_cmd_test
 /GTK_Dev_Kit/*.log
 /GTK_Dev_Kit/*.trs
 /GTK_Dev_Kit/*-actual.png

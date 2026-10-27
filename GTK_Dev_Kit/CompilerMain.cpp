@@ -115,7 +115,7 @@ bool parseCmdlineParameters(int argc, char *argv[]) {
 int main (int argc, char *argv[])
 {
 	char *fileList[1000];
-	int fileListNum;
+	int fileListNum = 0;
 
 	if (! parseCmdlineParameters(argc, argv) ) {
 		printCmdlineUsage();

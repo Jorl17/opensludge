@@ -182,18 +182,18 @@ bool convertTGA (char * filename) {
 		if (! i) return false;
 		if (backdrop32) {
 			j = savePNG (filename, HORZ_RES, VERT_RES, backDrop32Image);
-			delete backDrop32Image;
+			delete [] backDrop32Image;
 
 			if (! j) return false;
 		} else {
 			j = saveHSI (filename);
-			for (int a = 0; a < VERT_RES; a ++) delete backDropImage[a];
-			delete backDropImage;
+			for (int a = 0; a < VERT_RES; a ++) delete [] backDropImage[a];
+			delete [] backDropImage;
 
 			if (! j) return false;
 		}
 		setCompilerText (COMPILER_TXT_ITEM, "");
 	}
-	delete oldName;
+	delete [] oldName;
 	return true;
 }

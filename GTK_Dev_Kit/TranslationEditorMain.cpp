@@ -185,9 +185,7 @@ main(int argc, char *argv[])
 		return -1;
 	}
 
-	// On Windows, change to the program directory to
-	// make sure the necessary resource files are found:
-	winChangeToProgramDir(argv[0]);
+	setUpProgramFiles(argv[0]);
 
 	/*
 	 * Init GTK+.

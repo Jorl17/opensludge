@@ -36,10 +36,49 @@
 #include "SludgeGLApplication.h"
 #include "draw2d.h"
 
+// For each signal of the view, we call the method of the editor for it.
+
+static void on_view_realize(GtkWidget *theWidget, gpointer app)
+{
+	((SludgeGLApplication *) app)->on_drawingarea1_realize(theWidget);
+}
+
+static void render_view(gpointer app)
+{
+	((SludgeGLApplication *) app)->renderView();
+}
+
+static gboolean on_view_scroll_event(GtkWidget *theWidget, GdkEventScroll *theEvent, gpointer app)
+{
+	return ((SludgeGLApplication *) app)->on_drawingarea1_scroll_event(theWidget, theEvent);
+}
+
+static gboolean on_view_button_press_event(GtkWidget *theWidget, GdkEventButton *theEvent, gpointer app)
+{
+	return ((SludgeGLApplication *) app)->on_drawingarea1_button_press_event(theWidget, theEvent);
+}
+
+static gboolean on_view_button_release_event(GtkWidget *theWidget, GdkEventButton *theEvent, gpointer app)
+{
+	return ((SludgeGLApplication *) app)->on_drawingarea1_button_release_event(theWidget, theEvent);
+}
+
+static gboolean on_view_motion_notify_event(GtkWidget *theWidget, GdkEventMotion *theEvent, gpointer app)
+{
+	return ((SludgeGLApplication *) app)->on_drawingarea1_motion_notify_event(theWidget, theEvent);
+}
+
+static gboolean on_view_leave_notify_event(GtkWidget *theWidget, GdkEventAny *theEvent, gpointer app)
+{
+	return ((SludgeGLApplication *) app)->on_drawingarea1_leave_notify_event(theWidget, theEvent);
+}
+
 
 SludgeGLApplication::SludgeGLApplication(const char * gladeFileName, const char * iconName, const char * configFile)
  : SludgeApplication(gladeFileName, iconName, configFile)
 {
+	view = NULL;
+	theDrawingarea = NULL;
 	if (!initSuccess) return;
 
 	glInitialized = FALSE;
@@ -60,23 +99,26 @@ SludgeGLApplication::SludgeGLApplication(const char * gladeFileName, const char 
 
 	x = y = w = h = 0;
 
-	theDrawingarea = GTK_WIDGET (gtk_builder_get_object (theXml, "drawingarea1"));
-
-	if (theDrawingarea == NULL)
+	// We put the view into the viewbox of the window.
+	GtkBox *viewBox = GTK_BOX (gtk_builder_get_object (theXml, "viewbox"));
+	if (viewBox == NULL)
 	{
-		g_critical ("Failed to get the drawing area from the builder.\n");
+		g_critical ("Failed to get the box for the view from the builder.\n");
 		initSuccess = FALSE;
 		return;
 	}
-
-	// Configure the OpenGL drawing area. GtkGLArea creates and manages the
-	// context, and swaps the buffers after every render. GtkGLArea turns on
-	// the depth test when the area has a depth buffer, and we never clear
-	// one, so we draw without it. Without an alpha channel, the clear colour
-	// of each view is opaque.
-	gtk_gl_area_set_has_depth_buffer (GTK_GL_AREA (theDrawingarea), FALSE);
-	gtk_gl_area_set_has_alpha (GTK_GL_AREA (theDrawingarea), FALSE);
-	gtk_gl_area_set_auto_render (GTK_GL_AREA (theDrawingarea), TRUE);
+	view = createEditorView (render_view, this);
+	theDrawingarea = view->getWidget ();
+	gtk_widget_add_events (theDrawingarea, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
+			| GDK_LEAVE_NOTIFY_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_SCROLL_MASK);
+	g_signal_connect (theDrawingarea, "realize", G_CALLBACK (on_view_realize), this);
+	g_signal_connect (theDrawingarea, "scroll-event", G_CALLBACK (on_view_scroll_event), this);
+	g_signal_connect (theDrawingarea, "button-press-event", G_CALLBACK (on_view_button_press_event), this);
+	g_signal_connect (theDrawingarea, "button-release-event", G_CALLBACK (on_view_button_release_event), this);
+	g_signal_connect (theDrawingarea, "motion-notify-event", G_CALLBACK (on_view_motion_notify_event), this);
+	g_signal_connect (theDrawingarea, "leave-notify-event", G_CALLBACK (on_view_leave_notify_event), this);
+	gtk_box_pack_start (viewBox, theDrawingarea, TRUE, TRUE, 0);
+	gtk_widget_show (theDrawingarea);
 
 	// Initialise the render mutex.
 	g_mutex_init (&theRender_mutex);
@@ -87,6 +129,7 @@ SludgeGLApplication::SludgeGLApplication(const char * gladeFileName, const char 
 
 SludgeGLApplication::~SludgeGLApplication()
 {
+	delete view;
 	g_mutex_clear (&theRender_mutex);
 }
 
@@ -203,17 +246,14 @@ void SludgeGLApplication::refreshGL()
 }
 
 /*
- * Make the OpenGL context of the view current. GTK draws the window with its
- * own OpenGL context, so outside the "render" handler, we call this before we
- * create textures.
+ * Make the OpenGL context of the view current. On Linux and Windows, GTK draws
+ * the window with its own OpenGL context, so outside the "render" handler, we
+ * call this before we create textures.
  */
 gboolean SludgeGLApplication::makeViewCurrent()
 {
 	if (theDrawingarea == NULL) return FALSE;
-	if (gtk_gl_area_get_context (GTK_GL_AREA (theDrawingarea)) == NULL) return FALSE;
-
-	gtk_gl_area_make_current (GTK_GL_AREA (theDrawingarea));
-	return gtk_gl_area_get_error (GTK_GL_AREA (theDrawingarea)) == NULL;
+	return view->makeCurrent ();
 }
 
 void SludgeGLApplication::setCoords()
@@ -230,18 +270,14 @@ void SludgeGLApplication::on_drawingarea1_realize(GtkWidget *theWidget)
 		return;
 	}
 
-	gtk_widget_add_events(theWidget, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
-					 | GDK_LEAVE_NOTIFY_MASK | GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_SCROLL_MASK);  
-
 	// Set up OpenGL now if the context is already available.
 	initGL();
 }
 
 /*
- * The "render" signal handler for drawingarea1. All OpenGL re-drawing is done here.
- * GtkGLArea makes the OpenGL context current and swaps the buffers for us.
+ * Draw the view, with the OpenGL context of the view current.
  */
-gboolean SludgeGLApplication::on_drawingarea1_render(GtkWidget *theWidget, GdkGLContext *context)
+void SludgeGLApplication::renderView()
 {
 	// First frame: set up the application's OpenGL state.
 	initGL();
@@ -251,7 +287,7 @@ gboolean SludgeGLApplication::on_drawingarea1_render(GtkWidget *theWidget, GdkGL
 	 * This prevents the renderer being spammed by drawing requests if the rendering takes longer than the feed/timer process.
 	 */
 	if (!g_mutex_trylock(&theRender_mutex))
-		return TRUE;
+		return;
 
 	if (glInitialized)
 	{
@@ -259,8 +295,8 @@ gboolean SludgeGLApplication::on_drawingarea1_render(GtkWidget *theWidget, GdkGL
 		reshape();
 		if (zoomFitPending) on_zoom_fit_clicked ();
 
-		// We set the viewport and the projection here, in the render handler,
-		// and not in reshape or in the zoom and scroll handlers. GTK draws the
+		// We set the viewport and the projection here, and not in reshape or
+		// in the zoom and scroll handlers. On Linux and Windows, GTK draws the
 		// rest of the window with an OpenGL context of its own, and makes the
 		// context of this view current only while it runs the render handler.
 		// If we set them in another handler, we would change the context that
@@ -277,9 +313,8 @@ gboolean SludgeGLApplication::on_drawingarea1_render(GtkWidget *theWidget, GdkGL
 
 	// Release the rendering mutex.
 	g_mutex_unlock(&theRender_mutex);
-
-	return TRUE;
 }
+
 
 /*
  * The timer-based process tells GtkGLArea to redraw, which results in another "render" signal.

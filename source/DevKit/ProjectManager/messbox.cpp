@@ -36,9 +36,9 @@ int numErrors = 0;
 void clearComments () {
 	while (errorLinkToFile * item = errorList) {
 		errorList = errorList->next;
-		delete item->overview;
-		if (item->filename) delete item->filename;
-		delete item->fullText;
+		delete [] item->overview;
+		if (item->filename) delete [] item->filename;
+		delete [] item->fullText;
 		delete item;
 	}
 	numErrors = 0;
@@ -79,7 +79,7 @@ void addCommentWithLine (int errorType, const char * comment, const char * filen
 		s2[0] = '"';
 		s2 = s;
 		s = joinStrings(s, returnElement (allSourceStrings, i), "\"", s3);
-		delete s2;
+		delete [] s2;
 	}
 
 	// Extract resource file names ...
@@ -105,7 +105,7 @@ void addCommentWithLine (int errorType, const char * comment, const char * filen
 		s2[0] = '\'';
 		s2 = s;
 		s = joinStrings(s, returnElement (allFileHandles, i), "'", s3);
-		delete s2;
+		delete [] s2;
 	}
 
 	newLink->errorType = errorType;
@@ -129,8 +129,9 @@ void addCommentWithLine (int errorType, const char * comment, const char * filen
 	char * after = filename ? joinStrings (" (in ", filenameWline, ")") : copyString ("");
 	newLink->fullText = joinStrings (errorTypeStrings[errorType], s, after);
 
-	delete after;
-	delete filenameWline;
+	delete [] after;
+	delete [] filenameWline;
+	delete [] s;
 
 	numErrors ++;
 
@@ -144,7 +145,7 @@ bool addComment (int errorType, const char * txt1, const char * txt2, const char
 		if (a)
 		{
 			addCommentWithLine (errorType, a, filename, lineNumber);
-			delete a;
+			delete [] a;
 		}
 	}
 	else

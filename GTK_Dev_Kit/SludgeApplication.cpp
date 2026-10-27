@@ -21,13 +21,12 @@
 #include <stdlib.h>
 #include <glib/gstdio.h>
 
-#ifdef __WIN32
-#include <direct.h>
-#endif
-
 #include "SludgeApplication.h"
 #include "Common.h"
 #include "version.h"
+#if defined(__APPLE__)
+#include "MacMenuBar.h"
+#endif
 
 SludgeApplication::SludgeApplication(const char * gladeFileName, const char * iconName, const char * configFile)
 {
@@ -40,19 +39,19 @@ SludgeApplication::SludgeApplication(const char * gladeFileName, const char * ic
 	GdkPixbuf *pixbuf16, *pixbuf32, *pixbuf128, *pixbuf256;
 	GList *list = NULL;
 
-	sprintf(buf, "%s%s_16x16x32.png", DATADIR, iconName);
+	sprintf(buf, "%s%s_16x16x32.png", getDataFolder(), iconName);
 	pixbuf16 = gdk_pixbuf_new_from_file (buf, &err);
 
 	if (err == NULL) {
-		sprintf(buf, "%s%s_32x32x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_32x32x32.png", getDataFolder(), iconName);
 		pixbuf32 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 	if (err == NULL) {
-		sprintf(buf, "%s%s_128x128x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_128x128x32.png", getDataFolder(), iconName);
 		pixbuf128 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 	if (err == NULL) {
-		sprintf(buf, "%s%s_256x256x32.png", DATADIR, iconName);
+		sprintf(buf, "%s%s_256x256x32.png", getDataFolder(), iconName);
 		pixbuf256 = gdk_pixbuf_new_from_file (buf, &err);
 	}
 
@@ -93,9 +92,13 @@ SludgeApplication::SludgeApplication(const char * gladeFileName, const char * ic
 		return;
 	}
 
-	char folderFile[300];
-	sprintf(folderFile, "%s/sludge-devkit/%s", g_get_user_config_dir(), configfile);
-	FILE * fp = fopen (folderFile, "r");
+#if defined(__APPLE__)
+	useMacMenuBar (theXml);
+#endif
+
+	gchar * folderFile = getSettingsFilePath (configfile);
+	FILE * fp = g_fopen (folderFile, "r");
+	g_free (folderFile);
 	if (fp) {
 		char readChar = ' ';
 		for (int i = 0; i < 300; i++) {
@@ -121,14 +124,9 @@ SludgeApplication::~SludgeApplication()
 {
 	if (currentFolder[0] != 0)
 	{
-		if (g_chdir(g_get_user_config_dir())) return;
-#ifdef __WIN32
-		_mkdir("sludge-devkit");
-#else
-		g_mkdir("sludge-devkit", 0000777);
-#endif
-		if (g_chdir("sludge-devkit")) return;
-		FILE * fp = fopen (configfile, "w");
+		gchar * folderFile = getSettingsFilePath (configfile);
+		FILE * fp = g_fopen (folderFile, "w");
+		g_free (folderFile);
 
 		if (fp) {
 			fprintf (fp, "%s\n", currentFolder);
@@ -158,6 +156,17 @@ GtkFileChooser * SludgeApplication::newFileChooser(const char *title, GtkFileCho
 	return chooser;
 }
 
+// Add a filter for the files of this tool, such as .flo files in the floor
+// maker, to the file chooser, and select it.
+void SludgeApplication::setFileTypeFilter(GtkFileChooser *chooser)
+{
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, getFilterName());
+	addExtensionPattern(filter, getFilterExtension());
+	gtk_file_chooser_add_filter(chooser, filter);
+	gtk_file_chooser_set_filter(chooser, filter);
+}
+
 // Show the file chooser, and return TRUE when someone chose a file.
 gboolean SludgeApplication::runFileChooser(GtkFileChooser *chooser)
 {
@@ -167,14 +176,10 @@ gboolean SludgeApplication::runFileChooser(GtkFileChooser *chooser)
 void SludgeApplication::saveToFile()
 {
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 
 	dialog = newFileChooser ("Save File", GTK_FILE_CHOOSER_ACTION_SAVE);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter (dialog, filter);
+	setFileTypeFilter (dialog);
 
 	if (currentShortname[0] != 0)
 	{
@@ -319,14 +324,10 @@ void SludgeApplication::on_open()
 {
 	if (!reallyClose()) return;
 	GtkFileChooser *dialog;
-	GtkFileFilter *filter;
 
 	dialog = newFileChooser ("Open File", GTK_FILE_CHOOSER_ACTION_OPEN);
 
-	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, getFilterName());
-	gtk_file_filter_add_pattern(filter, getFilterPattern());
-	gtk_file_chooser_set_filter (dialog, filter);
+	setFileTypeFilter (dialog);
 
 	if (runFileChooser (dialog))
 	{

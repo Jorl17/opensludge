@@ -242,7 +242,7 @@ bool doSingleCompileStep (char **fileList, int *numFiles) {
                         return addComment (ERRORTYPE_PROJECTERROR, "Error adding custom icon", settings.customIcon, NULL, 0);
                     }
                 }
-                delete iconFile;
+                delete [] iconFile;
             }
             // ADD LOGO ------------------------------------
             if (customIconLogo & 2) {
@@ -262,7 +262,7 @@ bool doSingleCompileStep (char **fileList, int *numFiles) {
                         return addComment (ERRORTYPE_PROJECTERROR, "Error adding custom logo", settings.customLogo, NULL, 0);
                     }
                 }
-                delete logoFile;
+                delete [] logoFile;
             }
             //----------------------------------------------
 
@@ -396,7 +396,7 @@ int compileEverything (char * project, char **fileList, int *numFiles, void (*in
 			gotoSourceDirectory ();
 			char * killName = joinStrings (settings.finalFile, ".sl~");
 			unlink (killName);
-			delete killName;
+			delete [] killName;
 			success = false;
 		}
 	}
